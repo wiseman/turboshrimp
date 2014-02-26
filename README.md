@@ -1,4 +1,13 @@
-turboshrimp
-===========
+# turboshrimp
 
-Clojure API for the Parrot AR.Drone.
+A Clojure library designed to ... well, that part is up to you.
+
+## Usage
+
+FIXME
+
+## License
+
+Copyright © 2014 FIXME
+
+Distributed under the MIT License.

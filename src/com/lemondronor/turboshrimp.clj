@@ -1,10 +1,9 @@
 (ns com.lemondronor.turboshrimp
-  (:import (java.net DatagramPacket DatagramSocket InetAddress))
-  (:require [com.lemondronor.turboshrimp.at :refer :all]
-            [com.lemondronor.turboshrimp.navdata :refer :all]
-            [com.lemondronor.turboshrimp.goals :refer :all]
-            [taoensso.timbre :as log]
-            ))
+  (:require [com.lemondronor.turboshrimp.at :as at]
+            [com.lemondronor.turboshrimp.goals :as goals]
+            [com.lemondronor.turboshrimp.navdata :as navdata]
+            [taoensso.timbre :as log])
+  (:import (java.net DatagramPacket DatagramSocket InetAddress)))
 
 
 (def default-drone-ip "192.168.1.1")
@@ -45,7 +44,7 @@
 (defn mdrone [name command-key & [w x y z]]
   (let [counter (:counter (name @drones))
         seq-num (swap! counter inc)
-        data (build-command command-key seq-num w x y z)]
+        data (at/build-command command-key seq-num w x y z)]
     (send-command name data)))
 
 (defn drone [command-key & [w x y z]]
@@ -64,7 +63,7 @@
   (select-keys @drones (for [[k v] @drones :when (= ip (.getHostAddress ^InetAddress (:host v)))] k)))
 
 (defn drone-stop-navdata []
-  (reset! stop-navstream true))
+  (reset! navdata/stop-navstream true))
 
 (defn get-nav-data [name]
   (:nav-data (name @drones)))
@@ -80,23 +79,23 @@
 (defn stream-navdata [_ socket packet]
   (do
     (log/info "Waiting to receive data")
-    (receive-navdata socket packet)
+    (navdata/receive-navdata socket packet)
     (let [ipfrom (get-ip-from-packet packet)
           drone (find-drone ipfrom)
           from-name (first (keys drone))]
-      (parse-navdata (get-navdata-bytes packet) (get-nav-data from-name))
-      (log/info (str "(" from-name ") " "navdata: "(log-flight-data (get-nav-data from-name))))
+      (navdata/parse-navdata (navdata/get-navdata-bytes packet) (get-nav-data from-name))
+      (log/info (str "(" from-name ") " "navdata: "(navdata/log-flight-data (get-nav-data from-name))))
       (communication-check from-name)
-      (eval-current-goals drones from-name @(get-nav-data from-name))
-      (log/info (log-goal-info drones from-name)))
-    (if @stop-navstream
+      (goals/eval-current-goals drones from-name @(get-nav-data from-name))
+      (log/info (goals/log-goal-info drones from-name)))
+    (if @navdata/stop-navstream
       (log/info "navstream-ended")
       (recur nil socket packet))))
 
 
 (defn start-streaming-navdata [name ^DatagramSocket navdata-socket host port nav-agent]
   (let [receive-data (byte-array 2048)
-        nav-datagram-receive-packet (new-datagram-packet receive-data host port)]
+        nav-datagram-receive-packet (navdata/new-datagram-packet receive-data host port)]
     (log/info "Starting navdata stream")
     (swap! (get-nav-data name) {})
     (.setSoTimeout navdata-socket @socket-timeout)
@@ -106,9 +105,9 @@
 
 (defn init-streaming-navdata [navdata-socket host port]
   (let [send-data (byte-array (map byte [1 0 0 0]))
-        nav-datagram-send-packet (new-datagram-packet send-data host port)]
-    (reset-navstream)
-    (send-navdata navdata-socket nav-datagram-send-packet)))
+        nav-datagram-send-packet (navdata/new-datagram-packet send-data host port)]
+    (navdata/reset-navstream)
+    (navdata/send-navdata navdata-socket nav-datagram-send-packet)))
 
 (declare mdrone-init-navdata)
 
@@ -124,7 +123,7 @@
         (.setSoTimeout navdata-socket @socket-timeout)
         (reset! nav-agent (agent {}))
         (log/info (str "agent now is " nav-agent))
-        (when-not  @stop-navstream
+        (when-not  @navdata/stop-navstream
           (mdrone-init-navdata name))))))
 
 (defn mdrone-init-navdata [name]
