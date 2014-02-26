@@ -4,4 +4,5 @@
   :license {:name "MIT License"}
   :dependencies [[com.taoensso/timbre "3.1.1"]
                  [org.clojure/clojure "1.5.1"]]
-  :profiles {:dev {:dependencies [[midje "1.4.0"]]}})
+  :profiles {:dev {:dependencies [[midje "1.6.2"]]
+                   :plugins [[lein-midje "3.1.3"]]}})
