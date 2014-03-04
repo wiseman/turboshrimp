@@ -94,6 +94,13 @@
      0
      (range num-bytes))))
 
+(defn bytes-to-long [ba offset num-bytes]
+  (let [c 0x00000000000000FF]
+    (reduce
+     #(+ %1 (bit-shift-left (bit-and (nth ba (+ offset %2)) c) (* 8 %2)))
+     0
+     (range num-bytes))))
+
 (defn get-int [ba offset]
   (bytes-to-int ba offset 4))
 
@@ -102,6 +109,9 @@
 
 (defn get-float [ba offset]
   (Float/intBitsToFloat (Integer. (bytes-to-int ba offset 4))))
+
+(defn get-double [ba offset]
+  (Double/longBitsToDouble (Long. (bytes-to-long ba offset 8))))
 
 (defn get-type-by-n [ba type offset n]
   (let [getf (fn [x y] (conj x (type ba (+ offset (* y 4)))))]
@@ -117,6 +127,7 @@
   (case (int option)
     0 :demo
     16 :target-detect
+    27 :gps
     :unknown))
 
 (defn parse-target-tag [ba offset n]
@@ -172,6 +183,21 @@
      :detect-camera-type (detection-types detect-camera-type)
      }))
 
+(defn parse-gps-option [ba offset]
+  ;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
+  {
+   :gps {
+         :latitude (get-double ba (+ offset 4))
+         :longitude (get-double ba (+ offset 12))
+         :elevation (get-double ba (+ offset 20))
+         :hdop (get-double ba (+ offset 28))
+         :lat0 (get-double ba (+ offset 48))
+         :lon0 (get-double ba (+ offset 56))
+         :lat-fuse (get-double ba (+ offset 64))
+         :lon-fuse (get-double ba (+ offset 72))
+         }
+   })
+
 (defn parse-nav-state [state]
   (reduce
    #(let  [{:keys [name mask values]} %2
@@ -186,6 +212,7 @@
   (case (which-option-type option-header)
       :demo (parse-demo-option ba offset)
       :target-detect (parse-target-option ba offset)
+      :gps (parse-gps-option ba offset)
       nil))
 
 (defn parse-options [ba offset options]

@@ -145,6 +145,7 @@
         navdata => (contains {:velocity-y (float 0.0)})
         navdata => (contains {:velocity-z (float 0.0)}))
       (let [navdata (parse-navdata (xio/binary-slurp (io/resource "navdata.bin")))]
+        (pprint/pprint navdata)
         navdata => (contains {:flying :landed})
         navdata => (contains {:video :off})
         navdata => (contains {:vision :off})
@@ -177,8 +178,8 @@
         navdata => (contains {:com-watchdog :problem})
         navdata => (contains {:emergency-landing :off})
         navdata => (contains {:seq-num 300711})
-        navdata => (contains {:vision-flag true}))))
-
+        navdata => (contains {:vision-flag true})
+        navdata => (contains {:gps true}))))
 
   (facts "about stream-navdata"
     (fact "stream-navdata"
