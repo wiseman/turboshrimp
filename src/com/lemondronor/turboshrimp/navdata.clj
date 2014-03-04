@@ -198,16 +198,17 @@
       new-options
       (parse-options ba next-offset new-options))))
 
-(defn parse-navdata [navdata-bytes navdata]
-  (let [ header (get-int navdata-bytes 0)
+(defn parse-navdata [navdata-bytes]
+  (let [header (get-int navdata-bytes 0)
         state (get-int navdata-bytes 4)
         seqnum (get-int navdata-bytes 8)
         vision-flag (= (get-int navdata-bytes 12) 1)
         pstate (parse-nav-state state)
-        options (parse-options navdata-bytes 16 {})
-        new-data (merge {:header header :seq-num seqnum :vision-flag vision-flag}
-                        pstate options)]
-    (swap! navdata merge new-data)))
+        options (parse-options navdata-bytes 16 {})]
+    (merge {:header header :seq-num seqnum :vision-flag vision-flag}
+           pstate options)))
+
+;;    (swap! navdata merge new-data)))
 
 (defn send-navdata  [^DatagramSocket navdata-socket datagram-packet]
   (.send navdata-socket datagram-packet))

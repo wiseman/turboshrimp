@@ -1,5 +1,8 @@
 (ns com.lemondronor.turboshrimp.navdata-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :as pprint]
+            [clojure.test :refer :all]
+            [com.lemonodor.xio :as xio]
             [midje.sweet :refer :all]
             [com.lemondronor.turboshrimp.navdata :refer :all]
             [com.lemondronor.turboshrimp :refer :all])
@@ -71,6 +74,7 @@
 (def socket (DatagramSocket. ))
 (def packet (new-datagram-packet (byte-array 2048) host port))
 
+
 (deftest navdata-tests
   (facts "about new-datagram-packet"
     (fact "getPort/getAddress/getData"
@@ -125,22 +129,55 @@
 
   (facts "about parse-navdata"
     (fact "parse-navdata"
-      (parse-navdata nav-input (get-nav-data :default)) => anything
-      @(get-nav-data :default) => (contains {:header 0x55667788})
-      @(get-nav-data :default) => (contains {:battery :ok})
-      @(get-nav-data :default) => (contains {:flying :landed})
-      @(get-nav-data :default) => (contains {:seq-num 870})
-      @(get-nav-data :default) => (contains {:vision-flag false})
-      @(get-nav-data :default) => (contains {:control-state :landed})
-      @(get-nav-data :default) => (contains {:battery-percent 100 })
-      @(get-nav-data :default) => (contains {:pitch (float -1.075) })
-      @(get-nav-data :default) => (contains {:roll (float -2.904) })
-      @(get-nav-data :default) => (contains {:yaw (float -0.215) })
-      @(get-nav-data :default) => (contains {:altitude (float 0.0) })
-      @(get-nav-data :default) => (contains {:velocity-x (float 0.0)})
-      @(get-nav-data :default) => (contains {:velocity-y (float 0.0)})
-      @(get-nav-data :default) => (contains {:velocity-z (float 0.0)})
-      (against-background (before :facts (reset! drones {:default {:nav-data (atom {})}})))))
+      (let [navdata (parse-navdata nav-input)]
+        navdata => (contains {:header 0x55667788})
+        navdata => (contains {:battery :ok})
+        navdata => (contains {:flying :landed})
+        navdata => (contains {:seq-num 870})
+        navdata => (contains {:vision-flag false})
+        navdata => (contains {:control-state :landed})
+        navdata => (contains {:battery-percent 100 })
+        navdata => (contains {:pitch (float -1.075) })
+        navdata => (contains {:roll (float -2.904) })
+        navdata => (contains {:yaw (float -0.215) })
+        navdata => (contains {:altitude (float 0.0) })
+        navdata => (contains {:velocity-x (float 0.0)})
+        navdata => (contains {:velocity-y (float 0.0)})
+        navdata => (contains {:velocity-z (float 0.0)}))
+      (let [navdata (parse-navdata (xio/binary-slurp (io/resource "navdata.bin")))]
+        navdata => (contains {:flying :landed})
+        navdata => (contains {:video :off})
+        navdata => (contains {:vision :off})
+        navdata => (contains {:altitude-control :on})
+        navdata => (contains {:command-ack :received})
+        navdata => (contains {:camera :ready})
+        navdata => (contains {:travelling :off})
+        navdata => (contains {:usb :not-ready})
+        navdata => (contains {:demo :off})
+        navdata => (contains {:bootstrap :off})
+        navdata => (contains {:motors :ok})
+        navdata => (contains {:communication :ok})
+        navdata => (contains {:software :ok})
+        navdata => (contains {:bootstrap :off})
+        navdata => (contains {:battery :ok})
+        navdata => (contains {:emergency-landing :off})
+        navdata => (contains {:timer :not-elapsed})
+        navdata => (contains {:magneto :ok})
+        navdata => (contains {:angles :ok})
+        navdata => (contains {:wind :ok})
+        navdata => (contains {:ultrasound :ok})
+        navdata => (contains {:cutout :ok})
+        navdata => (contains {:pic-version :ok})
+        navdata => (contains {:atcodec-thread :on})
+        navdata => (contains {:navdata-thread :on})
+        navdata => (contains {:video-thread :on})
+        navdata => (contains {:acquisition-thread :on})
+        navdata => (contains {:ctrl-watchdog :ok})
+        navdata => (contains {:adc-watchdog :ok})
+        navdata => (contains {:com-watchdog :problem})
+        navdata => (contains {:emergency-landing :off})
+        navdata => (contains {:seq-num 300711})
+        navdata => (contains {:vision-flag true}))))
 
 
   (facts "about stream-navdata"

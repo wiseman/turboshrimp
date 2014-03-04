@@ -83,7 +83,8 @@
     (let [ipfrom (get-ip-from-packet packet)
           drone (find-drone ipfrom)
           from-name (first (keys drone))]
-      (navdata/parse-navdata (navdata/get-navdata-bytes packet) (get-nav-data from-name))
+      (swap! (get-nav-data from-name)
+             (navdata/parse-navdata (navdata/get-navdata-bytes packet)))
       (log/info (str "(" from-name ") " "navdata: "(navdata/log-flight-data (get-nav-data from-name))))
       (communication-check from-name)
       (goals/eval-current-goals drones from-name @(get-nav-data from-name))
