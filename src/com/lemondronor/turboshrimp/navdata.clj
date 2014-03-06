@@ -96,6 +96,7 @@
   (case (int option)
     0 :demo
     1 :time
+    2 :raw-measures
     16 :vision-detect
     26 :wifi
     27 :gps
@@ -201,6 +202,45 @@
 (defn parse-time-option [bb]
   (gloss.io/decode time-codec bb))
 
+(def raw-measures-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :accelerometers
+    (gloss/ordered-map
+     :x :uint16-le
+     :y :uint16-le
+     :z :uint16-le)
+    :gyroscopes
+     (gloss/ordered-map
+      :x :int16-le
+      :y :int16-le
+      :z :int16-le)
+     :gyroscopes-110
+     (gloss/ordered-map
+      :x :int16-le
+      :y :int16-le)
+     :battery-millivolts :uint32-le
+     :us-echo
+     (gloss/ordered-map
+      :start :uint16-le
+      :end :uint16-le
+      :association :uint16-le
+      :distance :uint16-le)
+     :us-curve
+     (gloss/ordered-map
+      :time :uint16-le
+      :value :uint16-le
+      :ref :uint16-le)
+     :echo
+     (gloss/ordered-map
+      :flag-ini :uint16-le
+      :num :uint16-le
+      :sum :uint32-le)
+     :alt-temp-raw :int32-le
+     :gradient :int16-le)))
+
+(defn parse-raw-measures-option [bb]
+  (gloss.io/decode raw-measures-codec bb))
 
 (def wifi-codec
   (gloss/compile-frame
@@ -276,6 +316,7 @@
 (def option-parsers
   {:demo parse-demo-option
    :time parse-time-option
+   :raw-measures parse-raw-measures-option
    :vision-detect parse-vision-detect-option
    :gps parse-gps-option
    :wifi parse-wifi-option})
@@ -284,7 +325,9 @@
   (let [option-type (which-option-type option-header)
         parser (option-parsers option-type)]
     (if (and option-type parser)
-      {option-type (parser bb)}
+      (do
+        (println "PARSING option" option-type)
+        {option-type (parser bb)})
       (do
         (println "SKIPPING option" option-header)
         nil))))

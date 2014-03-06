@@ -180,6 +180,29 @@
                 state => (contains {:emergency-landing :off})))
             (fact "time"
               (:time navdata) => 362.979125)
+            (fact "raw-measures"
+              (let [raw-meas (:raw-measures navdata)]
+                (:accelerometers raw-meas) => {:x 2040
+                                               :y 2036
+                                               :z 2528}
+                (:gyroscopes raw-meas) => {:x -23
+                                           :y 15
+                                           :z 0}
+                (:gyroscopes-110 raw-meas) => {:x 0
+                                               :y 0}
+                (:battery-millivolts raw-meas) => 11686
+                (:us-echo raw-meas) => {:start 0
+                                        :end 0
+                                        :association 3758
+                                        :distance 0}
+                (:us-curve raw-meas) => {:time 21423
+                                         :value 0
+                                         :ref 120}
+                (:echo raw-meas) => {:flag-ini 1
+                                     :num 1
+                                     :sum 3539193}
+                (:alt-temp-raw raw-meas) => 243
+                (:gradient raw-meas) => 41))
             (fact "wifi"
               (let [wifi (:wifi navdata)]
                 (:link-quality wifi) => 1.0))
