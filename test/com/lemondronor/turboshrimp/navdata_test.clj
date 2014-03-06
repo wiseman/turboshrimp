@@ -125,8 +125,8 @@
                       (drop 4 b-demo-option))
                  (.order ByteOrder/LITTLE_ENDIAN))
             option (parse-demo-option bb)]
-        option => (contains {:control-state :landed})
-        option => (contains {:battery 100 })
+        (:control-state option) => :landed
+        (:battery-percentage option) => 100
         option => (contains {:theta (float -1.075) })
         option => (contains {:phi (float -2.904) })
         option => (contains {:psi (float -0.215) })
@@ -139,62 +139,83 @@
 
   (facts "about parse-navdata"
     (fact "parse-navdata"
-      (let [navdata (parse-navdata nav-input)]
-        navdata => (contains {:header 0x55667788})
-        navdata => (contains {:seq-num 870})
-        navdata => (contains {:vision-flag false})
-        (let [state (:state navdata)]
-          state => (contains {:battery :ok})
-          state => (contains {:flying :landed}))
-        (let [demo (:demo navdata)]
-          demo => (contains {:control-state :landed})
-          demo => (contains {:battery 100 })
-          demo => (contains {:theta (float -1.075) })
-          demo => (contains {:phi (float -2.904) })
-          demo => (contains {:psi (float -0.215) })
-          demo => (contains {:altitude (float 0.0) })
-          demo => (contains {:velocity
-                             {:x (float 0.0)
-                              :y (float 0.0)
-                              :z (float 0.0)}})))
-      (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
-        ;;(println "Benchmarking parse-navdata")
-        ;;(criterium/bench (parse-navdata navdata-bytes))
-        (let [navdata (parse-navdata navdata-bytes)
-              state (:state navdata)]
-          state => (contains {:flying :landed})
-          state => (contains {:video :off})
-          state => (contains {:vision :off})
-          state => (contains {:altitude-control :on})
-          state => (contains {:command-ack :received})
-          state => (contains {:camera :ready})
-          state => (contains {:travelling :off})
-          state => (contains {:usb :not-ready})
-          state => (contains {:demo :off})
-          state => (contains {:bootstrap :off})
-          state => (contains {:motors :ok})
-          state => (contains {:communication :ok})
-          state => (contains {:software :ok})
-          state => (contains {:bootstrap :off})
-          state => (contains {:battery :ok})
-          state => (contains {:emergency-landing :off})
-          state => (contains {:timer :not-elapsed})
-          state => (contains {:magneto :ok})
-          state => (contains {:angles :ok})
-          state => (contains {:wind :ok})
-          state => (contains {:ultrasound :ok})
-          state => (contains {:cutout :ok})
-          state => (contains {:pic-version :ok})
-          state => (contains {:atcodec-thread :on})
-          state => (contains {:navdata-thread :on})
-          state => (contains {:video-thread :on})
-          state => (contains {:acquisition-thread :on})
-          state => (contains {:ctrl-watchdog :ok})
-          state => (contains {:adc-watchdog :ok})
-          state => (contains {:com-watchdog :problem})
-          state => (contains {:emergency-landing :off})
-          navdata => (contains {:seq-num 300711})
-          navdata => (contains {:vision-flag true})))))
+      (fact "hand-crafted input"
+        (let [navdata (parse-navdata nav-input)]
+          navdata => (contains {:header 0x55667788})
+          navdata => (contains {:seq-num 870})
+          navdata => (contains {:vision-flag false})
+          (fact "state"
+            (let [state (:state navdata)]
+              state => (contains {:battery :ok})
+              state => (contains {:flying :landed})))
+          (fact "demo"
+            (let [demo (:demo navdata)]
+              (:control-state demo) => :landed
+              (:battery-percentage demo) => 100
+              demo => (contains {:theta (float -1.075) })
+              demo => (contains {:phi (float -2.904) })
+              demo => (contains {:psi (float -0.215) })
+              demo => (contains {:altitude (float 0.0) })
+              demo => (contains {:velocity
+                                 {:x (float 0.0)
+                                  :y (float 0.0)
+                                  :z (float 0.0)}})))))
+      (fact "Reading specimen navdata"
+        (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
+          ;;(println "Benchmarking parse-navdata")
+          ;;(criterium/bench (parse-navdata navdata-bytes))
+          (let [navdata (parse-navdata navdata-bytes)]
+            (fact "navdata"
+              (:header navdata) => 0x55667788
+              (:seq-num navdata) => 300711
+              (:vision-flag navdata) => true)
+            (fact "state"
+              (let [state (:state navdata)]
+                state => (contains {:flying :landed})
+                state => (contains {:video :off})
+                state => (contains {:vision :off})
+                state => (contains {:altitude-control :on})
+                state => (contains {:command-ack :received})
+                state => (contains {:camera :ready})
+                state => (contains {:travelling :off})
+                state => (contains {:usb :not-ready})
+                state => (contains {:demo :off})
+                state => (contains {:bootstrap :off})
+                state => (contains {:motors :ok})
+                state => (contains {:communication :ok})
+                state => (contains {:software :ok})
+                state => (contains {:bootstrap :off})
+                state => (contains {:battery :ok})
+                state => (contains {:emergency-landing :off})
+                state => (contains {:timer :not-elapsed})
+                state => (contains {:magneto :ok})
+                state => (contains {:angles :ok})
+                state => (contains {:wind :ok})
+                state => (contains {:ultrasound :ok})
+                state => (contains {:cutout :ok})
+                state => (contains {:pic-version :ok})
+                state => (contains {:atcodec-thread :on})
+                state => (contains {:navdata-thread :on})
+                state => (contains {:video-thread :on})
+                state => (contains {:acquisition-thread :on})
+                state => (contains {:ctrl-watchdog :ok})
+                state => (contains {:adc-watchdog :ok})
+                state => (contains {:com-watchdog :problem})
+                state => (contains {:emergency-landing :off})))
+            (fact "demo"
+              (let [demo (:demo navdata)]
+                (:control-state demo) => :landed
+                (:battery-percentage demo) => 50
+                (:theta demo) => (float 2.974)
+                (:phi demo) => (float 0.55)
+                (:psi demo) => (float 1.933)
+                (:altitude demo) => 0.0
+                (:velocity demo) => {:x 0.0585307739675045
+                                     :y -0.8817979097366333
+                                     :z 0.0}))
+            (fact "vision-detect"
+              (let [vd (:vision-detect navdata)]
+                (:num-detected vd) => 0)))))))
 
   (facts "about stream-navdata"
     (fact "stream-navdata"
@@ -318,7 +339,6 @@
                       (drop 4 b-vision-detect-option))
                  (.order ByteOrder/LITTLE_ENDIAN))
             option (parse-vision-detect-option bb)]
-        (println option)
         option => (contains {:num-detected 2})
         option => (contains
                    {:type [:vertical-deprecated

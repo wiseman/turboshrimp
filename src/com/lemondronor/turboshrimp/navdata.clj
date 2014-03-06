@@ -184,7 +184,7 @@
   (gloss/compile-frame
    (gloss/ordered-map
     :control-state :uint32-le
-    :battery :uint32-le
+    :battery-percentage :uint32-le
     :theta :float32-le
     :phi :float32-le
     :psi :float32-le
@@ -213,7 +213,7 @@
        :detect-camera-type (detection-types (:detect-camera-type demo))))))
 
 (defn parse-demo-option [bb]
-  (gloss.io/decode demo-codec bb true))
+  (gloss.io/decode demo-codec bb))
 
 
 ;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
@@ -261,10 +261,11 @@
     :time-accur :float32-le
     :unk-5 (repeat 72 :ubyte)
     :temperature :float32-le
-    :pressure :float32-le)))
+    :pressure :float32-le
+    :unk-6 (repeat 36 :ubyte))))
 
 (defn parse-gps-option [bb]
-  (gloss.io/decode gps-codec bb false))
+  (gloss.io/decode gps-codec bb))
 
 (defn parse-nav-state [state]
   (reduce
