@@ -97,6 +97,7 @@
     0 :demo
     1 :time
     2 :raw-measures
+    3 :phys-measures
     16 :vision-detect
     26 :wifi
     27 :gps
@@ -242,6 +243,21 @@
 (defn parse-raw-measures-option [bb]
   (gloss.io/decode raw-measures-codec bb))
 
+(def phys-measures-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :temperature (gloss/ordered-map
+                  :accelerometer :float32-le
+                  :gyroscope :uint16-le)
+    :accelerometers vector3-codec
+    :gyroscopes vector3-codec
+    :alim3v3 :uint32-le
+    :vref-epson :uint32-le
+    :vref-idg :uint32-le)))
+
+(defn parse-phys-measures-option [bb]
+  (gloss.io/decode phys-measures-codec bb))
+
 (def wifi-codec
   (gloss/compile-frame
    :float32-le
@@ -317,6 +333,7 @@
   {:demo parse-demo-option
    :time parse-time-option
    :raw-measures parse-raw-measures-option
+   :phys-measures parse-phys-measures-option
    :vision-detect parse-vision-detect-option
    :gps parse-gps-option
    :wifi parse-wifi-option})

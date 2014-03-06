@@ -203,6 +203,19 @@
                                      :sum 3539193}
                 (:alt-temp-raw raw-meas) => 243
                 (:gradient raw-meas) => 41))
+            (fact "phys measures"
+              (let [phys-meas (:phys-measures navdata)]
+                (:temperature phys-meas) => {:accelerometer 45.309303283691406
+                                             :gyroscope 55738}
+                (:accelerometers phys-meas) => {:x 80.2970962524414
+                                                :y -33.318603515625
+                                                :z -942.5283203125}
+                (:gyroscopes phys-meas) => {:x -0.11236488074064255
+                                            :y 0.06872134655714035
+                                            :z 0.06200997903943062}
+                (:alim3v3 phys-meas) => 0
+                (:vref-epson phys-meas) => 0
+                (:vref-idg phys-meas) => 0))
             (fact "wifi"
               (let [wifi (:wifi navdata)]
                 (:link-quality wifi) => 1.0))
