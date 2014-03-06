@@ -269,13 +269,14 @@
 (defn parse-wifi-option [bb]
   (gloss.io/decode wifi-codec bb))
 
-;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
+;; GPS structure from
+;; https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
 
 (def gps-sat-channel-codec
   (gloss/compile-frame
    (gloss/ordered-map
     :sat :ubyte
-    :cn0 :unit8)))
+    :cn0 :ubyte)))
 
 (def gps-codec
   (gloss/compile-frame
@@ -315,7 +316,11 @@
     :unk-5 (repeat 72 :ubyte)
     :temperature :float32-le
     :pressure :float32-le
-    :unk-6 (repeat 36 :ubyte))))
+    :unk-5 (repeat 24 :ubyte))
+   identity
+   (fn [gps]
+     (assoc gps :last-frame-timestamp
+            (drone-time-to-seconds (:last-frame-timestamp gps))))))
 
 (defn parse-gps-option [bb]
   (gloss.io/decode gps-codec bb))

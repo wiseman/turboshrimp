@@ -230,6 +230,37 @@
                 (:velocity demo) => {:x 0.0585307739675045
                                      :y -0.8817979097366333
                                      :z 0.0}))
+            (fact "gps"
+              (let [gps (:gps navdata)]
+                (:latitude gps) => 34.0903478
+                ;;(:longitude gps) => 0
+                (:elevation gps) => 130.39
+                (:lat0 gps) => 34.090359093568644
+                (:lon0 gps) => -118.276604
+                (:lat-fuse gps) => 34.09035909403431
+                (:lon-fuse gps) => -118.276604
+                (:pdop gps) => 0.0
+                (:speed gps) => 0.4399999976158142
+                (:last-frame-timestamp gps) => 1816.647945
+                (:degree gps) => 170.16000366210938
+                (:degree-mag gps) => 0.0
+                (:channels gps) => [{:sat 22 :cn0 36}
+                                    {:sat 15 :cn0 17}
+                                    {:sat 11 :cn0 227}
+                                    {:sat 11 :cn0 227}
+                                    {:sat 18 :cn0 27}
+                                    {:sat 29 :cn0 16}
+                                    {:sat 21 :cn0 22}
+                                    {:sat 16 :cn0 0}
+                                    {:sat 27 :cn0 0}
+                                    {:sat 30 :cn0 0}
+                                    {:sat 12 :cn0 227}
+                                    {:sat 12 :cn0 227}]
+                (:gps-plugged gps) => 1
+                (:gps-time gps) => 0.0
+                (:week gps) => 0
+                (:gps-fix gps) => 0
+                (:num-satellites gps) => 0))
             (fact "vision-detect"
               (let [vd (:vision-detect navdata)]
                 (:num-detected vd) => 0)))))))
