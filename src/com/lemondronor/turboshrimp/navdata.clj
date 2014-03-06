@@ -132,6 +132,7 @@
 (defn which-option-type [option]
   (case (int option)
     0 :demo
+    1 :time
     16 :vision-detect
     27 :gps
     :unknown))
@@ -216,6 +217,28 @@
   (gloss.io/decode demo-codec bb))
 
 
+(defn >>> [x n]
+  (bit-shift-right (bit-and 0xFFFFFFFF x) n))
+
+(defn drone-time-to-seconds [time]
+  (println "converting" time)
+  (let [;; First 11 bits are seconds.
+        seconds (>>> time 21)
+        ;; Last 21 bits are microseconds.
+        microseconds (>>> (bit-shift-left time 11) 11)]
+    (+ seconds (/ microseconds 1000000.0))))
+
+
+(def time-codec
+  (gloss/compile-frame
+   :uint32-le
+   identity
+   drone-time-to-seconds))
+
+(defn parse-time-option [bb]
+  (gloss.io/decode time-codec bb))
+
+
 ;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
 
 (def gps-sat-channel-codec
@@ -280,6 +303,7 @@
 (defn parse-option [bb option-header]
   (case (which-option-type option-header)
     :demo {:demo (parse-demo-option bb)}
+    :time {:time (parse-time-option bb)}
     :vision-detect {:vision-detect (parse-vision-detect-option bb)}
     :gps {:gps (parse-gps-option bb)}
     (do

@@ -202,6 +202,8 @@
                 state => (contains {:adc-watchdog :ok})
                 state => (contains {:com-watchdog :problem})
                 state => (contains {:emergency-landing :off})))
+            (fact "time"
+              (:time navdata) => 362.979125)
             (fact "demo"
               (let [demo (:demo navdata)]
                 (:control-state demo) => :landed
