@@ -1,6 +1,12 @@
 (ns com.lemondronor.turboshrimp.navdata
-  (:import (java.net DatagramPacket DatagramSocket InetAddress)))
+  (:require [gloss.core :as gloss]
+            gloss.io
+            [hexdump.core :as hexdump])
+  (:import (java.net DatagramPacket DatagramSocket InetAddress)
+           (java.nio ByteBuffer ByteOrder)
+           (java.util Arrays)))
 
+(set! *warn-on-reflection* true)
 
 (def stop-navstream (atom false))
 (def log-data (atom [:seq-num :pstate :com-watchdog :communication
@@ -87,14 +93,14 @@
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
   (new DatagramPacket data (count data) host port))
 
-(defn bytes-to-int [ba offset num-bytes]
+(defn bytes-to-int ^long [ba offset num-bytes]
   (let [c 0x000000FF]
     (reduce
      #(+ %1 (bit-shift-left (bit-and (nth ba (+ offset %2)) c) (* 8 %2)))
      0
      (range num-bytes))))
 
-(defn bytes-to-long [ba offset num-bytes]
+(defn bytes-to-long ^long [ba offset num-bytes]
   (let [c 0x00000000000000FF]
     (reduce
      #(+ %1 (bit-shift-left (bit-and (nth ba (+ offset %2)) c) (* 8 %2)))
@@ -126,77 +132,139 @@
 (defn which-option-type [option]
   (case (int option)
     0 :demo
-    16 :target-detect
+    16 :vision-detect
     27 :gps
     :unknown))
 
-(defn parse-target-tag [ba offset n]
-  (let [noffset (+ offset 8)
-        target-type (get-int-by-n ba noffset n)
-        target-xc (get-int-by-n ba (+ noffset 16) n)
-        target-yc (get-int-by-n ba (+ noffset (* 2 16)) n)
-        target-width (get-int-by-n ba (+ noffset (* 3 16)) n)
-        target-height (get-int-by-n ba (+ noffset (* 4 16)) n)
-        target-dist (get-int-by-n ba (+ noffset (* 5 16)) n )
-        target-orient-angle (get-float-by-n ba (+ noffset (* 6 16)) n)
-        target-camera-source (get-int-by-n ba (+ noffset (* 7 16) 144 48) n)
-        ]
-    {:target-type (parse-tag-detect target-type)
-     :target-xc target-xc :target-yc target-yc
-     :target-width target-width :target-height target-height
-     :target-dist target-dist :target-orient-angle target-orient-angle
-     :target-camera-source (camera-sources target-camera-source)
-     }))
+(gloss/defcodec vector3-codec
+  (gloss/ordered-map
+   :x :float32-le
+   :y :float32-le
+   :z :float32-le))
 
-(defn parse-target-option [ba offset]
-  (let [target-size 44
-        target-num-tags-detected (get-int ba (+ offset 4))
-        targets (for [i (range 0 target-num-tags-detected)]
-                     (parse-target-tag ba offset i))]
-    {:targets-num target-num-tags-detected
-     :targets (vec targets)}))
+(gloss/defcodec matrix33-codec
+  (gloss/ordered-map
+   :m11 :float32-le
+   :m12 :float32-le
+   :m13 :float32-le
+   :m21 :float32-le
+   :m22 :float32-le
+   :m23 :float32-le
+   :m31 :float32-le
+   :m32 :float32-le
+   :m33 :float32-le))
 
-(defn parse-control-state [ba offset]
-  (control-states (bit-shift-right (get-int ba offset) 16)))
+(def vision-detect-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :num-detected :uint32-le
+    :type (repeat 4 :uint32-le)
+    :xc (repeat 4 :uint32-le)
+    :yc (repeat 4 :uint32-le)
+    :width (repeat 4 :uint32-le)
+    :height (repeat 4 :uint32-le)
+    :dist (repeat 4 :uint32-le)
+    :orientation-angle (repeat 4 :float32-le)
+    :rotation (repeat 4 matrix33-codec)
+    :translation (repeat 4 vector3-codec)
+    :camera-source (repeat 4 :uint32-le))
+   identity
+   (fn [vision]
+     (assoc vision
+       :type (map detection-types (:type vision))
+       :camera-source (map camera-sources (:camera-source vision))))))
 
-(defn parse-demo-option [ba offset]
-  (let [ control-state (parse-control-state ba (+ offset 4))
-        battery (get-int ba (+ offset 8))
-        pitch (float (/ (get-float ba (+ offset 12)) 1000))
-        roll  (float (/ (get-float ba (+ offset 16)) 1000))
-        yaw   (float (/ (get-float ba (+ offset 20)) 1000))
-        altitude (float (/ (get-int ba (+ offset 24)) 1000))
-        velocity-x (float (get-float ba (+ offset 28)))
-        velocity-y (float (get-float ba (+ offset 32)))
-        velocity-z (float (get-float ba (+ offset 26)))
-        detect-camera-type (get-int ba (+ offset 96))
-        ]
-    { :control-state control-state
-     :battery-percent battery
-     :pitch pitch
-     :roll roll
-     :yaw yaw
-     :altitude altitude
-     :velocity-x velocity-x
-     :velocity-y velocity-y
-     :velocity-z velocity-z
-     :detect-camera-type (detection-types detect-camera-type)
-     }))
+(defn parse-vision-detect-option [bb]
+  (gloss.io/decode vision-detect-codec bb))
 
-(defn parse-gps-option [ba offset]
-  ;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
-  {
-   :gps {
-         :latitude (get-double ba (+ offset 4))
-         :longitude (get-double ba (+ offset 12))
-         :elevation (get-double ba (+ offset 20))
-         :hdop (get-double ba (+ offset 28))
-         :lat0 (get-double ba (+ offset 48))
-         :lon0 (get-double ba (+ offset 56))
-         :lat-fuse (get-double ba (+ offset 64))
-         :lon-fuse (get-double ba (+ offset 72))
-         }
-   })
+(defn parse-control-state [v]
+  (control-states (bit-shift-right v 16)))
+
+(def demo-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :control-state :uint32-le
+    :battery :uint32-le
+    :theta :float32-le
+    :phi :float32-le
+    :psi :float32-le
+    :altitude :uint32-le
+    :velocity vector3-codec
+    :frame-index :uint32-le
+    :detection (gloss/ordered-map
+                :camera (gloss/ordered-map
+                         :rotation matrix33-codec
+                         :translation vector3-codec)
+                :tag-index :uint32-le)
+    :detect-camera-type :uint32-le
+    :drone (gloss/ordered-map
+            :camera (gloss/ordered-map
+                     :rotation matrix33-codec
+                     :translation vector3-codec)))
+   identity
+   (fn [demo]
+     ;;(println "BEFORE COOKING" demo)
+     (assoc demo
+       :control-state (parse-control-state (:control-state demo))
+       :theta (float (/ (:theta demo) 1000))
+       :phi (float (/ (:phi demo) 1000))
+       :psi (float (/ (:psi demo) 1000))
+       :altitude (float (/ (:altitude demo) 1000))
+       :detect-camera-type (detection-types (:detect-camera-type demo))))))
+
+(defn parse-demo-option [bb]
+  (gloss.io/decode demo-codec bb true))
+
+
+;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
+
+(def gps-sat-channel-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :sat :ubyte
+    :cn0 :unit8)))
+
+(def gps-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :latitude :float64-le
+    :longitude :float64-le
+    :elevation :float64-le
+    :hdop :float64-le
+    :data-available :int32-le
+    :unk-0 (repeat 8 :ubyte)
+    :lat0 :float64-le
+    :lon0 :float64-le
+    :lat-fuse :float64-le
+    :lon-fuse :float64-le
+    :gps-state :uint32-le
+    :unk-1 (repeat 40 :ubyte)
+    :vdop :float64-le
+    :pdop :float64-le
+    :speed :float32-le
+    :last-frame-timestamp :uint32-le
+    :degree :float32-le
+    :degree-mag :float32-le
+    :unk-2 (repeat 16 :ubyte)
+    :channels (repeat 12 gps-sat-channel-codec)
+    :gps-plugged :int32-le
+    :unk-3 (repeat 108 :ubyte)
+    :gps-time :float64-le
+    :week :uint16-le
+    :gps-fix :ubyte
+    :num-satellites :ubyte
+    :unk-4 (repeat 24 :ubyte)
+    :ned-vel-c0 :float64-le
+    :ned-vel-c1 :float64-le
+    :ned-vel-c2 :float64-le
+    :speed-accur :float32-le
+    :time-accur :float32-le
+    :unk-5 (repeat 72 :ubyte)
+    :temperature :float32-le
+    :pressure :float32-le)))
+
+(defn parse-gps-option [bb]
+  (gloss.io/decode gps-codec bb false))
 
 (defn parse-nav-state [state]
   (reduce
@@ -208,32 +276,79 @@
    state-masks))
 
 
-(defn parse-option [ba offset option-header]
+(defn parse-option [bb option-header]
   (case (which-option-type option-header)
-      :demo (parse-demo-option ba offset)
-      :target-detect (parse-target-option ba offset)
-      :gps (parse-gps-option ba offset)
-      nil))
+    :demo {:demo (parse-demo-option bb)}
+    :vision-detect {:vision-detect (parse-vision-detect-option bb)}
+    :gps {:gps (parse-gps-option bb)}
+    (do
+      ;;(println "SKIPPING option" option-header)
+      nil)))
 
-(defn parse-options [ba offset options]
-  (let [option-header (get-short ba offset)
-        option-size (get-short ba (+ offset 2))
-        option (when-not (zero? option-size) (parse-option ba offset option-header))
-        next-offset (+ offset option-size)
+(defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
+  (let [ba ^"[B" (Arrays/copyOfRange
+                  ^"[B" (.array bb)
+                  offset
+                  (+ offset len))]
+    (ByteBuffer/wrap ba)))
+
+(defn parse-options [^ByteBuffer bb options]
+  (let [option-header (.getShort bb)
+        option-size (.getShort bb)
+        option (when-not (zero? option-size)
+                 ;; (println "---------- parse-options"
+                 ;;          "header:" option-header (which-option-type option-header)
+                 ;;          "size:" option-size
+                 ;;          "position:" (.position bb))
+                 ;; (hexdump/hexdump (take
+                 ;;                   (- option-size 4)
+                 ;;                   (drop
+                 ;;                    (.position bb)
+                 ;;                    (seq (.array bb)))))
+                 (let [^ByteBuffer opt-bb (slice-byte-buffer
+                                           bb
+                                           (.position bb)
+                                           (- option-size 4))
+                       opt (parse-option opt-bb option-header)]
+                   ;;(when opt (println "NEW OPT" opt))
+                   opt))
         new-options (merge options option)]
-    (if (or (zero? option-size) (>= next-offset (count ba)))
-      new-options
-      (parse-options ba next-offset new-options))))
+    (let [old-pos (.position bb)
+          new-pos (+ old-pos (- option-size 4))]
+      ;;(println "old-pos" old-pos "option-size" option-size "new-pos" new-pos)
+      (.position bb new-pos))
+    (if (or (zero? option-size) (zero? (.remaining bb)))
+      (do
+        ;;(println "returning options" new-options)
+        new-options)
+      (parse-options bb new-options))))
+
+(def navdata-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :header :uint32-le
+    :state :uint32-le
+    :seqnum :uint32-le
+    :vision-flag :uint32-le)))
 
 (defn parse-navdata [navdata-bytes]
-  (let [header (get-int navdata-bytes 0)
-        state (get-int navdata-bytes 4)
-        seqnum (get-int navdata-bytes 8)
-        vision-flag (= (get-int navdata-bytes 12) 1)
+  ;;(println "==================== parse-navdata")
+  ;;(hexdump/hexdump (seq navdata-bytes))
+  (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
+                         (.order ByteOrder/LITTLE_ENDIAN))
+        header (.getInt bb)
+        state (.getInt bb)
+        seqnum (.getInt bb)
+        vision-flag (= (.getInt bb) 1)
         pstate (parse-nav-state state)
-        options (parse-options navdata-bytes 16 {})]
-    (merge {:header header :seq-num seqnum :vision-flag vision-flag}
-           pstate options)))
+        ;; _ (println "header" header
+        ;;            "state" state pstate
+        ;;            "seqnum" seqnum
+        ;;            "vision-flag" vision-flag)
+        options (parse-options bb {})]
+    (merge {:header header :seq-num seqnum :vision-flag vision-flag
+            :state pstate}
+           options)))
 
 ;;    (swap! navdata merge new-data)))
 

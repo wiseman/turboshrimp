@@ -3,10 +3,13 @@
             [clojure.pprint :as pprint]
             [clojure.test :refer :all]
             [com.lemonodor.xio :as xio]
+            [criterium.core :as criterium]
+            [gloss.io]
             [midje.sweet :refer :all]
             [com.lemondronor.turboshrimp.navdata :refer :all]
             [com.lemondronor.turboshrimp :refer :all])
-  (:import (java.net InetAddress DatagramSocket)))
+  (:import (java.net InetAddress DatagramSocket)
+           (java.nio ByteOrder)))
 
 ;; matrix 33 is 9 floats
 ;; vector 31 is 3 floats
@@ -46,29 +49,29 @@
                                   b-demo-detect-tag-index
                                   b-demo-detect-camera-type b-demo-drone-camera-rot
                                   b-demo-drone-camera-trans)))
-(def b-target-option-id [16 0])
-(def b-target-option-size [72 1])
-(def b-target-num-tags-detected [2 0 0 0])
-(def b-target-type [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-xc [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-yc [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-width [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-height [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-dist [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
-(def b-target-orient-angle [0 96 -122 -60 0 96 -122 -60 0 96 -122 -60 0 96 -122 -60])
-(def b-target-rotation (flatten (conj b-matrix33  b-matrix33  b-matrix33  b-matrix33)))
-(def b-target-translation (flatten (conj b-vector31 b-vector31 b-vector31 b-vector31)))
-(def b-target-camera-source [1 0 0 0 2 0 0 0 2 0 0 0 2 0 0 0])
-(def b-target-option (flatten (conj b-target-option-id b-target-option-size
-                                    b-target-num-tags-detected
-                                    b-target-type b-target-xc b-target-yc
-                                    b-target-width b-target-height b-target-dist
-                                    b-target-orient-angle b-target-rotation b-target-translation
-                                    b-target-camera-source)))
+(def b-vision-detect-option-id [16 0])
+(def b-vision-detect-option-size [72 1])
+(def b-vision-detect-num-tags-detected [2 0 0 0])
+(def b-vision-detect-type [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-xc [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-yc [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-width [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-height [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-dist [1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0])
+(def b-vision-detect-orient-angle [0 96 -122 -60 0 96 -122 -60 0 96 -122 -60 0 96 -122 -60])
+(def b-vision-detect-rotation (flatten (conj b-matrix33  b-matrix33  b-matrix33  b-matrix33)))
+(def b-vision-detect-translation (flatten (conj b-vector31 b-vector31 b-vector31 b-vector31)))
+(def b-vision-detect-camera-source [1 0 0 0 2 0 0 0 2 0 0 0 2 0 0 0])
+(def b-vision-detect-option (flatten (conj b-vision-detect-option-id b-vision-detect-option-size
+                                    b-vision-detect-num-tags-detected
+                                    b-vision-detect-type b-vision-detect-xc b-vision-detect-yc
+                                    b-vision-detect-width b-vision-detect-height b-vision-detect-dist
+                                    b-vision-detect-orient-angle b-vision-detect-rotation b-vision-detect-translation
+                                    b-vision-detect-camera-source)))
 
-(def b-options (flatten (conj b-demo-option b-target-option)))
+(def b-options (flatten (conj b-demo-option b-vision-detect-option)))
 (def header (map byte [-120 119 102 85]))
-(def nav-input  (map byte (flatten (conj b-header b-state b-seqnum b-vision b-demo-option b-target-option))))
+(def nav-input  (byte-array (map byte (flatten (conj b-header b-state b-seqnum b-vision b-demo-option b-vision-detect-option)))))
 (def host (InetAddress/getByName "192.168.1.1"))
 (def port 5554)
 (def socket (DatagramSocket. ))
@@ -84,46 +87,53 @@
         (.getAddress ndp) => host
         (.getData ndp) => data)))
 
-  (facts "about get-int"
-    (fact "get-int"
-      (get-int (byte-array header) 0) => 0x55667788))
+  ;; (facts "about get-int"
+  ;;   (fact "get-int"
+  ;;     (get-int (byte-array header) 0) => 0x55667788))
 
-  (facts "about get-short"
-    (fact "get-short"
-      (get-short (map byte b-demo-option-size) 0) => 148))
+  ;; (facts "about get-short"
+  ;;   (fact "get-short"
+  ;;     (get-short (map byte b-demo-option-size) 0) => 148))
 
-  (facts "about get-float"
-    (fact "get-float"
-      (get-float (map byte b-demo-pitch) 0) => -1075.0))
+  ;; (facts "about get-float"
+  ;;   (fact "get-float"
+  ;;     (get-float (map byte b-demo-pitch) 0) => -1075.0))
 
-  (facts "about get-int-by-n"
-    (fact "get-int-by-n"
-      (get-int-by-n (map byte b-target-type) 0 0) => 1
-      (get-int-by-n (map byte b-target-type) 0 1) => 2
-      (get-int-by-n (map byte b-target-type) 0 2) => 3
-      (get-int-by-n (map byte b-target-type) 0 3) => 4))
+  ;; (facts "about get-int-by-n"
+  ;;   (fact "get-int-by-n"
+  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 0) => 1
+  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 1) => 2
+  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 2) => 3
+  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 3) => 4))
 
 
-  (facts "about get-float-by-n"
-    (fact "get-float-by-n"
-      (get-float-by-n (map byte b-demo-pitch) 0 0) => -1075.0))
+  ;; (facts "about get-float-by-n"
+  ;;   (fact "get-float-by-n"
+  ;;     (get-float-by-n (map byte b-demo-pitch) 0 0) => -1075.0))
 
   (facts "about parse-control-state"
     (fact "parse-control-state"
-      (parse-control-state b-demo-option 4) => :landed))
+      (let [bb (doto (gloss.io/to-byte-buffer b-demo-control-state)
+                            (.order ByteOrder/LITTLE_ENDIAN))
+            control-state (.getInt bb)]
+        (parse-control-state control-state) => :landed)))
 
   (facts "about parse-demo-option"
     (fact "parse-demo-option"
-      (let [option (parse-demo-option b-demo-option 0)]
+      (let [bb (doto (gloss.io/to-byte-buffer
+                      ;; Skip past the option ID and option size.
+                      (drop 4 b-demo-option))
+                 (.order ByteOrder/LITTLE_ENDIAN))
+            option (parse-demo-option bb)]
         option => (contains {:control-state :landed})
-        option => (contains {:battery-percent 100 })
-        option => (contains {:pitch (float -1.075) })
-        option => (contains {:roll (float -2.904) })
-        option => (contains {:yaw (float -0.215) })
-        option => (contains {:altitude  (float 0.0) })
-        option => (contains {:velocity-x  (float 0.0) })
-        option => (contains {:velocity-y  (float 0.0) })
-        option => (contains {:velocity-z  (float 0.0) })
+        option => (contains {:battery 100 })
+        option => (contains {:theta (float -1.075) })
+        option => (contains {:phi (float -2.904) })
+        option => (contains {:psi (float -0.215) })
+        option => (contains {:altitude (float 0.0) })
+        option => (contains {:velocity {:x (float 0.0)
+                                        :y (float 0.0)
+                                        :z (float 0.0)}})
         option => (contains {:detect-camera-type :roundel-under-drone }))))
 
 
@@ -131,55 +141,60 @@
     (fact "parse-navdata"
       (let [navdata (parse-navdata nav-input)]
         navdata => (contains {:header 0x55667788})
-        navdata => (contains {:battery :ok})
-        navdata => (contains {:flying :landed})
         navdata => (contains {:seq-num 870})
         navdata => (contains {:vision-flag false})
-        navdata => (contains {:control-state :landed})
-        navdata => (contains {:battery-percent 100 })
-        navdata => (contains {:pitch (float -1.075) })
-        navdata => (contains {:roll (float -2.904) })
-        navdata => (contains {:yaw (float -0.215) })
-        navdata => (contains {:altitude (float 0.0) })
-        navdata => (contains {:velocity-x (float 0.0)})
-        navdata => (contains {:velocity-y (float 0.0)})
-        navdata => (contains {:velocity-z (float 0.0)}))
-      (let [navdata (parse-navdata (xio/binary-slurp (io/resource "navdata.bin")))]
-        (pprint/pprint navdata)
-        navdata => (contains {:flying :landed})
-        navdata => (contains {:video :off})
-        navdata => (contains {:vision :off})
-        navdata => (contains {:altitude-control :on})
-        navdata => (contains {:command-ack :received})
-        navdata => (contains {:camera :ready})
-        navdata => (contains {:travelling :off})
-        navdata => (contains {:usb :not-ready})
-        navdata => (contains {:demo :off})
-        navdata => (contains {:bootstrap :off})
-        navdata => (contains {:motors :ok})
-        navdata => (contains {:communication :ok})
-        navdata => (contains {:software :ok})
-        navdata => (contains {:bootstrap :off})
-        navdata => (contains {:battery :ok})
-        navdata => (contains {:emergency-landing :off})
-        navdata => (contains {:timer :not-elapsed})
-        navdata => (contains {:magneto :ok})
-        navdata => (contains {:angles :ok})
-        navdata => (contains {:wind :ok})
-        navdata => (contains {:ultrasound :ok})
-        navdata => (contains {:cutout :ok})
-        navdata => (contains {:pic-version :ok})
-        navdata => (contains {:atcodec-thread :on})
-        navdata => (contains {:navdata-thread :on})
-        navdata => (contains {:video-thread :on})
-        navdata => (contains {:acquisition-thread :on})
-        navdata => (contains {:ctrl-watchdog :ok})
-        navdata => (contains {:adc-watchdog :ok})
-        navdata => (contains {:com-watchdog :problem})
-        navdata => (contains {:emergency-landing :off})
-        navdata => (contains {:seq-num 300711})
-        navdata => (contains {:vision-flag true})
-        navdata => (contains {:gps true}))))
+        (let [state (:state navdata)]
+          state => (contains {:battery :ok})
+          state => (contains {:flying :landed}))
+        (let [demo (:demo navdata)]
+          demo => (contains {:control-state :landed})
+          demo => (contains {:battery 100 })
+          demo => (contains {:theta (float -1.075) })
+          demo => (contains {:phi (float -2.904) })
+          demo => (contains {:psi (float -0.215) })
+          demo => (contains {:altitude (float 0.0) })
+          demo => (contains {:velocity
+                             {:x (float 0.0)
+                              :y (float 0.0)
+                              :z (float 0.0)}})))
+      (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
+        ;;(println "Benchmarking parse-navdata")
+        ;;(criterium/bench (parse-navdata navdata-bytes))
+        (let [navdata (parse-navdata navdata-bytes)
+              state (:state navdata)]
+          state => (contains {:flying :landed})
+          state => (contains {:video :off})
+          state => (contains {:vision :off})
+          state => (contains {:altitude-control :on})
+          state => (contains {:command-ack :received})
+          state => (contains {:camera :ready})
+          state => (contains {:travelling :off})
+          state => (contains {:usb :not-ready})
+          state => (contains {:demo :off})
+          state => (contains {:bootstrap :off})
+          state => (contains {:motors :ok})
+          state => (contains {:communication :ok})
+          state => (contains {:software :ok})
+          state => (contains {:bootstrap :off})
+          state => (contains {:battery :ok})
+          state => (contains {:emergency-landing :off})
+          state => (contains {:timer :not-elapsed})
+          state => (contains {:magneto :ok})
+          state => (contains {:angles :ok})
+          state => (contains {:wind :ok})
+          state => (contains {:ultrasound :ok})
+          state => (contains {:cutout :ok})
+          state => (contains {:pic-version :ok})
+          state => (contains {:atcodec-thread :on})
+          state => (contains {:navdata-thread :on})
+          state => (contains {:video-thread :on})
+          state => (contains {:acquisition-thread :on})
+          state => (contains {:ctrl-watchdog :ok})
+          state => (contains {:adc-watchdog :ok})
+          state => (contains {:com-watchdog :problem})
+          state => (contains {:emergency-landing :off})
+          navdata => (contains {:seq-num 300711})
+          navdata => (contains {:vision-flag true})))))
 
   (facts "about stream-navdata"
     (fact "stream-navdata"
@@ -247,79 +262,113 @@
   (facts "about which-option-type"
     (fact "which-option-type"
       (which-option-type 0) => :demo
-      (which-option-type 16) => :target-detect
+      (which-option-type 16) => :vision-detect
       (which-option-type 2342342) => :unknown))
 
   (facts "about parse-tag-detect"
     (fact "parse-tag-detect"
       (parse-tag-detect 131072) => :vertical-hsync))
 
-  (facts "about parse-target-tag"
-    (fact "about parse-target-tag with the first target"
-      (let [tag (parse-target-tag (map byte b-target-option) 0 0)]
-        tag => (contains {:target-type :horizontal})
-        tag => (contains {:target-xc 1})
-        tag => (contains {:target-yc 1})
-        tag => (contains {:target-width 1})
-        tag => (contains {:target-height 1})
-        tag => (contains {:target-dist 1})
-        tag => (contains {:target-orient-angle -1075.0})
-        tag => (contains {:target-camera-source :vertical})))
-    (fact "about parse-target-tag with the second target"
-      (let [tag (parse-target-tag (map byte b-target-option) 0 1)]
-        tag => (contains {:target-type :horizontal})
-        tag => (contains {:target-xc 2})
-        tag => (contains {:target-yc 2})
-        tag => (contains {:target-width 2})
-        tag => (contains {:target-height 2})
-        tag => (contains {:target-dist 2})
-        tag => (contains {:target-orient-angle -1075.0})
-        tag => (contains {:target-camera-source :vertical-hsync})))
-    (fact "about parse-target-tag with the third target"
-      (let [tag (parse-target-tag (map byte b-target-option) 0 2)]
-        tag => (contains {:target-type :horizontal})
-        tag => (contains {:target-xc 3})
-        tag => (contains {:target-yc 3})
-        tag => (contains {:target-width 3})
-        tag => (contains {:target-height 3})
-        tag => (contains {:target-dist 3})
-        tag => (contains {:target-orient-angle -1075.0})
-        tag => (contains {:target-camera-source :vertical-hsync})))
-    (fact "about parse-target-tag with the fourth target"
-      (let [tag (parse-target-tag (map byte b-target-option) 0 3)]
-        tag => (contains {:target-type :horizontal})
-        tag => (contains {:target-xc 4})
-        tag => (contains {:target-yc 4})
-        tag => (contains {:target-width 4})
-        tag => (contains {:target-height 4})
-        tag => (contains {:target-dist 4})
-        tag => (contains {:target-orient-angle -1075.0})
-        tag => (contains {:target-camera-source :vertical-hsync}))))
+  ;; (facts "about parse-vision-detect-tag"
+  ;;   (fact "about parse-vision-detect-tag with the first vision-detect"
+  ;;     (let [tag (parse-vision-detect-tag (map byte b-vision-detect-option) 0 0)]
+  ;;       tag => (contains {:target-type :horizontal})
+  ;;       tag => (contains {:target-xc 1})
+  ;;       tag => (contains {:target-yc 1})
+  ;;       tag => (contains {:target-width 1})
+  ;;       tag => (contains {:target-height 1})
+  ;;       tag => (contains {:target-dist 1})
+  ;;       tag => (contains {:target-orient-angle -1075.0})
+  ;;       tag => (contains {:target-camera-source :vertical})))
+  ;;   (fact "about parse-vision-detect-tag with the second vision-detect"
+  ;;     (let [tag (parse-vision-detect-tag (map byte b-vision-detect-option) 0 1)]
+  ;;       tag => (contains {:target-type :horizontal})
+  ;;       tag => (contains {:target-xc 2})
+  ;;       tag => (contains {:target-yc 2})
+  ;;       tag => (contains {:target-width 2})
+  ;;       tag => (contains {:target-height 2})
+  ;;       tag => (contains {:target-dist 2})
+  ;;       tag => (contains {:target-orient-angle -1075.0})
+  ;;       tag => (contains {:target-camera-source :vertical-hsync})))
+  ;;   (fact "about parse-vision-detect-tag with the third vision-detect"
+  ;;     (let [tag (parse-vision-detect-tag (map byte b-vision-detect-option) 0 2)]
+  ;;       tag => (contains {:target-type :horizontal})
+  ;;       tag => (contains {:target-xc 3})
+  ;;       tag => (contains {:target-yc 3})
+  ;;       tag => (contains {:target-width 3})
+  ;;       tag => (contains {:target-height 3})
+  ;;       tag => (contains {:target-dist 3})
+  ;;       tag => (contains {:target-orient-angle -1075.0})
+  ;;       tag => (contains {:target-camera-source :vertical-hsync})))
+  ;;   (fact "about parse-vision-detect-tag with the fourth vision-detect"
+  ;;     (let [tag (parse-vision-detect-tag (map byte b-vision-detect-option) 0 3)]
+  ;;       tag => (contains {:target-type :horizontal})
+  ;;       tag => (contains {:target-xc 4})
+  ;;       tag => (contains {:target-yc 4})
+  ;;       tag => (contains {:target-width 4})
+  ;;       tag => (contains {:target-height 4})
+  ;;       tag => (contains {:target-dist 4})
+  ;;       tag => (contains {:target-orient-angle -1075.0})
+  ;;       tag => (contains {:target-camera-source :vertical-hsync}))))
 
-  (facts "about parse-target-option"
-    (fact "parse-target-option"
-      (let [t-tag {:target-type :horizontal
-                   :target-xc 1
-                   :target-yc 1
-                   :target-width 1
-                   :target-height 1
-                   :target-dist 1
-                   :target-orient-angle -1075.0
-                   :target-camera-source 1}
-            option (parse-target-option b-target-option 0)
-            targets (:targets option)]
-        option => (contains {:targets-num 2})
-        (count targets) => 2
-        (first targets) => (contains {:target-type :horizontal}))))
+  (facts "about parse-vision-detect-option"
+    (fact "parse-vision-detect-option"
+      (let [bb (doto (gloss.io/to-byte-buffer
+                      ;; Skip past the option ID and option size.
+                      (drop 4 b-vision-detect-option))
+                 (.order ByteOrder/LITTLE_ENDIAN))
+            option (parse-vision-detect-option bb)]
+        (println option)
+        option => (contains {:num-detected 2})
+        option => (contains
+                   {:type [:vertical-deprecated
+                           :horizontal-drone-shell
+                           :none-disabled
+                           :roundel-under-drone]})
+        option => (contains {:xc [1 2 3 4]})
+        option => (contains {:yc [1 2 3 4]})
+        option => (contains {:width [1 2 3 4]})
+        option => (contains {:height [1 2 3 4]})
+        option => (contains {:dist [1 2 3 4]})
+        option => (contains {:orientation-angle [-1075.0 -1075.0 -1075.0 -1075.0]})
+        option => (contains
+                   {:rotation
+                    [{:m11 0.0, :m12 0.0, :m13 0.0,
+                      :m21 0.0, :m22 0.0, :m23 0.0,
+                      :m31 0.0, :m32 0.0, :m33 0.0}
+                     {:m11 0.0, :m12 0.0, :m13 0.0,
+                      :m21 0.0, :m22 0.0, :m23 0.0,
+                      :m31 0.0, :m32 0.0, :m33 0.0}
+                     {:m11 0.0, :m12 0.0, :m13 0.0,
+                      :m21 0.0, :m22 0.0, :m23 0.0,
+                      :m31 0.0, :m32 0.0, :m33 0.0}
+                     {:m11 0.0, :m12 0.0, :m13 0.0,
+                      :m21 0.0, :m22 0.0, :m23 0.0,
+                      :m31 0.0, :m32 0.0, :m33 0.0}]})
+        option => (contains
+                   {:translation
+                    [{:x 0.0, :y 0.0, :z 0.0}
+                     {:x 0.0, :y 0.0, :z 0.0}
+                     {:x 0.0, :y 0.0, :z 0.0}
+                     {:x 0.0, :y 0.0, :z 0.0}]})
+        option => (contains
+                   {:camera-source
+                    [:vertical :vertical-hsync :vertical-hsync :vertical-hsync]})
 
-  (facts "about parse-options"
-    (fact "about parse-options with demo"
-      (let [option (parse-options b-demo-option 0 {})]
-        option => (contains {:control-state :landed})))
-    (fact "about parse option with targets"
-      (let [option (parse-options b-target-option 0 {})]
-        option => (contains {:targets-num 2})))
-    (fact "about parse-options with demo and targets"
-      (let [options (parse-options nav-input 16 {})]
-        options => (contains {:control-state :landed})
-        options => (contains {:targets-num 2})))))
+
+        ;;(count vision-detects) => 2
+        ;;(first vision-detects) => (contains {:vision-detect-type :horizontal})
+        )))
+
+  ;; (facts "about parse-options"
+  ;;   (fact "about parse-options with demo"
+  ;;     (let [option (parse-options b-demo-option 0 {})]
+  ;;       option => (contains {:control-state :landed})))
+  ;;   (fact "about parse option with targets"
+  ;;     (let [option (parse-options b-target-option 0 {})]
+  ;;       option => (contains {:targets-num 2})))
+  ;;   (fact "about parse-options with demo and targets"
+  ;;     (let [options (parse-options nav-input 16 {})]
+  ;;       options => (contains {:control-state :landed})
+  ;;       options => (contains {:targets-num 2}))))
+  )
