@@ -204,6 +204,9 @@
                 state => (contains {:emergency-landing :off})))
             (fact "time"
               (:time navdata) => 362.979125)
+            (fact "wifi"
+              (let [wifi (:wifi navdata)]
+                (:link-quality wifi) => 1.0))
             (fact "demo"
               (let [demo (:demo navdata)]
                 (:control-state demo) => :landed

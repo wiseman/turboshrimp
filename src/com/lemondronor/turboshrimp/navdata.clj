@@ -134,6 +134,7 @@
     0 :demo
     1 :time
     16 :vision-detect
+    26 :wifi
     27 :gps
     :unknown))
 
@@ -221,7 +222,6 @@
   (bit-shift-right (bit-and 0xFFFFFFFF x) n))
 
 (defn drone-time-to-seconds [time]
-  (println "converting" time)
   (let [;; First 11 bits are seconds.
         seconds (>>> time 21)
         ;; Last 21 bits are microseconds.
@@ -238,6 +238,17 @@
 (defn parse-time-option [bb]
   (gloss.io/decode time-codec bb))
 
+
+(def wifi-codec
+  (gloss/compile-frame
+   :float32-le
+   identity
+   (fn [v]
+     {:link-quality (- 1.0 v)})))
+
+
+(defn parse-wifi-option [bb]
+  (gloss.io/decode wifi-codec bb))
 
 ;; from https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
 
@@ -306,8 +317,9 @@
     :time {:time (parse-time-option bb)}
     :vision-detect {:vision-detect (parse-vision-detect-option bb)}
     :gps {:gps (parse-gps-option bb)}
+    :wifi {:wifi (parse-wifi-option bb)}
     (do
-      ;;(println "SKIPPING option" option-header)
+      (println "SKIPPING option" option-header)
       nil)))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
