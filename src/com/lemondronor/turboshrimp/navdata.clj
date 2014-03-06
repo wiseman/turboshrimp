@@ -15,6 +15,7 @@
 (defn reset-navstream [] (reset! stop-navstream false))
 (defn set-log-data [data] (reset! log-data data))
 
+
 (def state-masks
   [ {:name :flying             :mask 0  :values [:landed :flying]}
     {:name :video              :mask 1  :values [:off :on]}
@@ -88,46 +89,8 @@
 (defn tag-type-mask [type-num]
   (bit-shift-left 1 (dec type-num)))
 
-(def option-tags [0 :NAVDATA-DEMO-TAG])
-
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
   (new DatagramPacket data (count data) host port))
-
-(defn bytes-to-int ^long [ba offset num-bytes]
-  (let [c 0x000000FF]
-    (reduce
-     #(+ %1 (bit-shift-left (bit-and (nth ba (+ offset %2)) c) (* 8 %2)))
-     0
-     (range num-bytes))))
-
-(defn bytes-to-long ^long [ba offset num-bytes]
-  (let [c 0x00000000000000FF]
-    (reduce
-     #(+ %1 (bit-shift-left (bit-and (nth ba (+ offset %2)) c) (* 8 %2)))
-     0
-     (range num-bytes))))
-
-(defn get-int [ba offset]
-  (bytes-to-int ba offset 4))
-
-(defn get-short [ba offset]
-  (bytes-to-int ba offset 2))
-
-(defn get-float [ba offset]
-  (Float/intBitsToFloat (Integer. (bytes-to-int ba offset 4))))
-
-(defn get-double [ba offset]
-  (Double/longBitsToDouble (Long. (bytes-to-long ba offset 8))))
-
-(defn get-type-by-n [ba type offset n]
-  (let [getf (fn [x y] (conj x (type ba (+ offset (* y 4)))))]
-    (nth (reduce getf [] (range 0 (inc n))) n)))
-
-(defn get-int-by-n [ba offset n]
-  (get-type-by-n ba get-int offset n))
-
-(defn get-float-by-n [ba offset n]
-  (get-type-by-n ba get-float offset n))
 
 (defn which-option-type [option]
   (case (int option)
@@ -310,17 +273,21 @@
    {}
    state-masks))
 
+(def option-parsers
+  {:demo parse-demo-option
+   :time parse-time-option
+   :vision-detect parse-vision-detect-option
+   :gps parse-gps-option
+   :wifi parse-wifi-option})
 
 (defn parse-option [bb option-header]
-  (case (which-option-type option-header)
-    :demo {:demo (parse-demo-option bb)}
-    :time {:time (parse-time-option bb)}
-    :vision-detect {:vision-detect (parse-vision-detect-option bb)}
-    :gps {:gps (parse-gps-option bb)}
-    :wifi {:wifi (parse-wifi-option bb)}
-    (do
-      (println "SKIPPING option" option-header)
-      nil)))
+  (let [option-type (which-option-type option-header)
+        parser (option-parsers option-type)]
+    (if (and option-type parser)
+      {option-type (parser bb)}
+      (do
+        (println "SKIPPING option" option-header)
+        nil))))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
   (let [ba ^"[B" (Arrays/copyOfRange
@@ -329,19 +296,16 @@
                   (+ offset len))]
     (ByteBuffer/wrap ba)))
 
+(defn get-ushort [^ByteBuffer bb]
+  (bit-and 0xFFFF (Integer. (int (.getShort bb)))))
+
+(defn get-uint [^ByteBuffer bb]
+  (bit-and 0xFFFFFFFF (Long. (long (.getInt bb)))))
+
 (defn parse-options [^ByteBuffer bb options]
-  (let [option-header (.getShort bb)
-        option-size (.getShort bb)
+  (let [option-header (get-ushort bb)
+        option-size (get-ushort bb)
         option (when-not (zero? option-size)
-                 ;; (println "---------- parse-options"
-                 ;;          "header:" option-header (which-option-type option-header)
-                 ;;          "size:" option-size
-                 ;;          "position:" (.position bb))
-                 ;; (hexdump/hexdump (take
-                 ;;                   (- option-size 4)
-                 ;;                   (drop
-                 ;;                    (.position bb)
-                 ;;                    (seq (.array bb)))))
                  (let [^ByteBuffer opt-bb (slice-byte-buffer
                                            bb
                                            (.position bb)
@@ -373,10 +337,10 @@
   ;;(hexdump/hexdump (seq navdata-bytes))
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
                          (.order ByteOrder/LITTLE_ENDIAN))
-        header (.getInt bb)
-        state (.getInt bb)
-        seqnum (.getInt bb)
-        vision-flag (= (.getInt bb) 1)
+        header (get-uint bb)
+        state (get-uint bb)
+        seqnum (get-uint bb)
+        vision-flag (= (get-uint bb) 1)
         pstate (parse-nav-state state)
         ;; _ (println "header" header
         ;;            "state" state pstate

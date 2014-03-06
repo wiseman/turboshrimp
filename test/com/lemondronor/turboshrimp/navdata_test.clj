@@ -87,30 +87,6 @@
         (.getAddress ndp) => host
         (.getData ndp) => data)))
 
-  ;; (facts "about get-int"
-  ;;   (fact "get-int"
-  ;;     (get-int (byte-array header) 0) => 0x55667788))
-
-  ;; (facts "about get-short"
-  ;;   (fact "get-short"
-  ;;     (get-short (map byte b-demo-option-size) 0) => 148))
-
-  ;; (facts "about get-float"
-  ;;   (fact "get-float"
-  ;;     (get-float (map byte b-demo-pitch) 0) => -1075.0))
-
-  ;; (facts "about get-int-by-n"
-  ;;   (fact "get-int-by-n"
-  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 0) => 1
-  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 1) => 2
-  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 2) => 3
-  ;;     (get-int-by-n (map byte b-vision-detect-type) 0 3) => 4))
-
-
-  ;; (facts "about get-float-by-n"
-  ;;   (fact "get-float-by-n"
-  ;;     (get-float-by-n (map byte b-demo-pitch) 0 0) => -1075.0))
-
   (facts "about parse-control-state"
     (fact "parse-control-state"
       (let [bb (doto (gloss.io/to-byte-buffer b-demo-control-state)
