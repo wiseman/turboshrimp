@@ -16,40 +16,43 @@
 (defn set-log-data [data] (reset! log-data data))
 
 
-(def state-masks
-  [ {:name :flying             :mask 0  :values [:landed :flying]}
-    {:name :video              :mask 1  :values [:off :on]}
-    {:name :vision             :mask 2  :values [:off :on]}
-    {:name :control            :mask 3  :values [:euler-angles :angular-speed]}
-    {:name :altitude-control   :mask 4  :values [:off :on]}
-    {:name :user-feedback      :mask 5  :values [:off :on]}
-    {:name :command-ack        :mask 6  :values [:none :received]}
-    {:name :camera             :mask 7  :values [:not-ready :ready]}
-    {:name :travelling         :mask 8  :values [:off :on]}
-    {:name :usb                :mask 9  :values [:not-ready :ready]}
-    {:name :demo               :mask 10 :values [:off :on]}
-    {:name :bootstrap          :mask 11 :values [:off :on]}
-    {:name :motors             :mask 12 :values [:ok :motor-problem]}
-    {:name :communication      :mask 13 :values [:ok :communication-lost]}
-    {:name :software           :mask 14 :values [:ok :software-fault]}
-    {:name :battery            :mask 15 :values [:ok :too-low]}
-    {:name :emergency-landing  :mask 16 :values [:off :on]}
-    {:name :timer              :mask 17 :values [:not-elapsed :elapsed]}
-    {:name :magneto            :mask 18 :values [:ok :needs-calibration]}
-    {:name :angles             :mask 19 :values [:ok :out-of-range]}
-    {:name :wind               :mask 20 :values [:ok :too-much]}
-    {:name :ultrasound         :mask 21 :values [:ok :deaf]}
-    {:name :cutout             :mask 22 :values [:ok :detected]}
-    {:name :pic-version        :mask 23 :values [:bad-version :ok]}
-    {:name :atcodec-thread     :mask 24 :values [:off :on]}
-    {:name :navdata-thread     :mask 25 :values [:off :on]}
-    {:name :video-thread       :mask 26 :values [:off :on]}
-    {:name :acquisition-thread :mask 27 :values [:off :on]}
-    {:name :ctrl-watchdog      :mask 28 :values [:ok :delay]}
-    {:name :adc-watchdog       :mask 29 :values [:ok :delay]}
-    {:name :com-watchdog       :mask 30 :values [:ok :problem]}
-    {:name :emergency          :mask 31 :values [:ok :detected]}
-    ])
+(defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
+  (new DatagramPacket data (count data) host port))
+
+
+(defn which-option-type [option]
+  (case (int option)
+    0 :demo
+    1 :time
+    2 :raw-measures
+    3 :phys-measures
+    16 :vision-detect
+    22 :magneto
+    26 :wifi
+    27 :gps
+    nil))
+
+
+;; Codecs for vectors and matrices used by other codecs.
+
+(gloss/defcodec vector3-codec
+  (gloss/ordered-map
+   :x :float32-le
+   :y :float32-le
+   :z :float32-le))
+
+(gloss/defcodec matrix33-codec
+  (gloss/ordered-map
+   :m11 :float32-le
+   :m12 :float32-le
+   :m13 :float32-le
+   :m21 :float32-le
+   :m22 :float32-le
+   :m23 :float32-le
+   :m31 :float32-le
+   :m32 :float32-le
+   :m33 :float32-le))
+
 
 (def control-states
   {0 :default, 1 :init, 2 :landed, 3 :flying, 4 :hovering, 5 :test,
@@ -77,7 +80,7 @@
    1 :vertical
    2 :vertical-hsync})
 
-(defn parse-tag-detect [n]
+(defn parse-vision-detect-tag [n]
   (when n
     (camera-sources (bit-shift-right n 16))))
 
@@ -88,62 +91,6 @@
 
 (defn tag-type-mask [type-num]
   (bit-shift-left 1 (dec type-num)))
-
-(defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
-  (new DatagramPacket data (count data) host port))
-
-(defn which-option-type [option]
-  (case (int option)
-    0 :demo
-    1 :time
-    2 :raw-measures
-    3 :phys-measures
-    16 :vision-detect
-    22 :magneto
-    26 :wifi
-    27 :gps
-    nil))
-
-(gloss/defcodec vector3-codec
-  (gloss/ordered-map
-   :x :float32-le
-   :y :float32-le
-   :z :float32-le))
-
-(gloss/defcodec matrix33-codec
-  (gloss/ordered-map
-   :m11 :float32-le
-   :m12 :float32-le
-   :m13 :float32-le
-   :m21 :float32-le
-   :m22 :float32-le
-   :m23 :float32-le
-   :m31 :float32-le
-   :m32 :float32-le
-   :m33 :float32-le))
-
-(def vision-detect-codec
-  (gloss/compile-frame
-   (gloss/ordered-map
-    :num-detected :uint32-le
-    :type (repeat 4 :uint32-le)
-    :xc (repeat 4 :uint32-le)
-    :yc (repeat 4 :uint32-le)
-    :width (repeat 4 :uint32-le)
-    :height (repeat 4 :uint32-le)
-    :dist (repeat 4 :uint32-le)
-    :orientation-angle (repeat 4 :float32-le)
-    :rotation (repeat 4 matrix33-codec)
-    :translation (repeat 4 vector3-codec)
-    :camera-source (repeat 4 :uint32-le))
-   identity
-   (fn [vision]
-     (assoc vision
-       :type (map detection-types (:type vision))
-       :camera-source (map camera-sources (:camera-source vision))))))
-
-(defn parse-vision-detect-option [bb]
-  (gloss.io/decode vision-detect-codec bb))
 
 (defn parse-control-state [v]
   (control-states (bit-shift-right v 16)))
@@ -182,6 +129,42 @@
 (defn parse-demo-option [bb]
   (gloss.io/decode demo-codec bb))
 
+
+(def max-vision-detections 4)
+
+(def vision-detect-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :num-detected :uint32-le
+    :detections
+    (gloss/ordered-map
+     :type (repeat 4 :uint32-le)
+     :xc (repeat 4 :uint32-le)
+     :yc (repeat 4 :uint32-le)
+     :width (repeat 4 :uint32-le)
+     :height (repeat 4 :uint32-le)
+     :dist (repeat 4 :uint32-le)
+     :orientation-angle (repeat 4 :float32-le)
+     :rotation (repeat 4 matrix33-codec)
+     :translation (repeat 4 vector3-codec)
+     :camera-source (repeat 4 :uint32-le)))
+   identity
+   (fn [vision]
+     (let [v (-> vision
+                 (update-in [:detections :type]
+                            #(mapv detection-types %))
+                 (update-in [:detections :camera-source]
+                            #(mapv camera-sources %)))]
+       (map (fn [i]
+              (into {}
+                    (for [k (keys (:detections v))]
+                      [k (get-in (:detections v) [k i])])))
+            (range (min
+                    max-vision-detections
+                    (:num-detected v))))))))
+
+(defn parse-vision-detect-option [bb]
+  (gloss.io/decode vision-detect-codec bb))
 
 (defn >>> [x n]
   (bit-shift-right (bit-and 0xFFFFFFFF x) n))
@@ -347,6 +330,41 @@
 
 (defn parse-magneto-option [bb]
   (gloss.io/decode magneto-codec bb))
+
+(def state-masks
+  [ {:name :flying             :mask 0  :values [:landed :flying]}
+    {:name :video              :mask 1  :values [:off :on]}
+    {:name :vision             :mask 2  :values [:off :on]}
+    {:name :control            :mask 3  :values [:euler-angles :angular-speed]}
+    {:name :altitude-control   :mask 4  :values [:off :on]}
+    {:name :user-feedback      :mask 5  :values [:off :on]}
+    {:name :command-ack        :mask 6  :values [:none :received]}
+    {:name :camera             :mask 7  :values [:not-ready :ready]}
+    {:name :travelling         :mask 8  :values [:off :on]}
+    {:name :usb                :mask 9  :values [:not-ready :ready]}
+    {:name :demo               :mask 10 :values [:off :on]}
+    {:name :bootstrap          :mask 11 :values [:off :on]}
+    {:name :motors             :mask 12 :values [:ok :motor-problem]}
+    {:name :communication      :mask 13 :values [:ok :communication-lost]}
+    {:name :software           :mask 14 :values [:ok :software-fault]}
+    {:name :battery            :mask 15 :values [:ok :too-low]}
+    {:name :emergency-landing  :mask 16 :values [:off :on]}
+    {:name :timer              :mask 17 :values [:not-elapsed :elapsed]}
+    {:name :magneto            :mask 18 :values [:ok :needs-calibration]}
+    {:name :angles             :mask 19 :values [:ok :out-of-range]}
+    {:name :wind               :mask 20 :values [:ok :too-much]}
+    {:name :ultrasound         :mask 21 :values [:ok :deaf]}
+    {:name :cutout             :mask 22 :values [:ok :detected]}
+    {:name :pic-version        :mask 23 :values [:bad-version :ok]}
+    {:name :atcodec-thread     :mask 24 :values [:off :on]}
+    {:name :navdata-thread     :mask 25 :values [:off :on]}
+    {:name :video-thread       :mask 26 :values [:off :on]}
+    {:name :acquisition-thread :mask 27 :values [:off :on]}
+    {:name :ctrl-watchdog      :mask 28 :values [:ok :delay]}
+    {:name :adc-watchdog       :mask 29 :values [:ok :delay]}
+    {:name :com-watchdog       :mask 30 :values [:ok :problem]}
+    {:name :emergency          :mask 31 :values [:ok :detected]}
+    ])
 
 (defn parse-nav-state [state]
   (reduce
