@@ -261,6 +261,26 @@
                 (:week gps) => 0
                 (:gps-fix gps) => 0
                 (:num-satellites gps) => 0))
+            (fact "magneto"
+              (let [magneto (:magneto navdata)]
+                (:mx magneto) => 30
+                (:my magneto) => -56
+                (:mz magneto) => 80
+                (:raw magneto) => {:x 189.0 :y -100.8984375 :z -278.4375}
+                (:rectified magneto) => {:x 145.08058166503906
+                                         :y -84.93736267089844
+                                         :z -287.18157958984375}
+                (:offset magneto) => {:x 29.21237564086914
+                                      :y -13.282999038696289
+                                      :z 0.0}
+                (:heading magneto) =>  {:unwrapped (float 0.0)
+                                        :gyro-unwrapped (float 4.132266E-4)
+                                        :fusion-unwrapped (float 1.9333557)}
+                (:calibration-ok magneto) => 1
+                (:state magneto) => 2
+                (:radius magneto) => (float 387.31146)
+                (:error magneto) => {:mean (float -211.51361)
+                                     :variance (float 79.36719)}))
             (fact "vision-detect"
               (let [vd (:vision-detect navdata)]
                 (:num-detected vd) => 0)))))))

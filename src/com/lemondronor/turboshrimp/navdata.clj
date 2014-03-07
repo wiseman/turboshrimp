@@ -99,6 +99,7 @@
     2 :raw-measures
     3 :phys-measures
     16 :vision-detect
+    22 :magneto
     26 :wifi
     27 :gps
     :unknown))
@@ -325,6 +326,29 @@
 (defn parse-gps-option [bb]
   (gloss.io/decode gps-codec bb))
 
+(def magneto-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :mx :int16-le
+    :my :int16-le
+    :mz :int16-le
+    :raw vector3-codec
+    :rectified vector3-codec
+    :offset vector3-codec
+    :heading (gloss/ordered-map
+              :unwrapped :float32-le
+              :gyro-unwrapped :float32-le
+              :fusion-unwrapped :float32-le)
+    :calibration-ok :ubyte
+    :state :uint32-le
+    :radius :float32-le
+    :error (gloss/ordered-map
+            :mean :float32-le
+            :variance :float32-le))))
+
+(defn parse-magneto-option [bb]
+  (gloss.io/decode magneto-codec bb))
+
 (defn parse-nav-state [state]
   (reduce
    #(let  [{:keys [name mask values]} %2
@@ -336,11 +360,12 @@
 
 (def option-parsers
   {:demo parse-demo-option
-   :time parse-time-option
-   :raw-measures parse-raw-measures-option
-   :phys-measures parse-phys-measures-option
-   :vision-detect parse-vision-detect-option
    :gps parse-gps-option
+   :magneto parse-magneto-option
+   :phys-measures parse-phys-measures-option
+   :raw-measures parse-raw-measures-option
+   :time parse-time-option
+   :vision-detect parse-vision-detect-option
    :wifi parse-wifi-option})
 
 (defn parse-option [bb option-header]
