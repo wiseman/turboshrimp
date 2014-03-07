@@ -87,226 +87,6 @@
         (.getAddress ndp) => host
         (.getData ndp) => data)))
 
-  (facts "about parse-control-state"
-    (fact "parse-control-state"
-      (let [bb (doto (gloss.io/to-byte-buffer b-demo-control-state)
-                            (.order ByteOrder/LITTLE_ENDIAN))
-            control-state (.getInt bb)]
-        (parse-control-state control-state) => :landed)))
-
-  (facts "about parse-demo-option"
-    (fact "parse-demo-option"
-      (let [bb (doto (gloss.io/to-byte-buffer
-                      ;; Skip past the option ID and option size.
-                      (drop 4 b-demo-option))
-                 (.order ByteOrder/LITTLE_ENDIAN))
-            option (parse-demo-option bb)]
-        (:control-state option) => :landed
-        (:battery-percentage option) => 100
-        option => (contains {:theta (float -1.075) })
-        option => (contains {:phi (float -2.904) })
-        option => (contains {:psi (float -0.215) })
-        option => (contains {:altitude (float 0.0) })
-        option => (contains {:velocity {:x (float 0.0)
-                                        :y (float 0.0)
-                                        :z (float 0.0)}})
-        option => (contains {:detect-camera-type :roundel-under-drone }))))
-
-  (facts "about parse-navdata"
-    (fact "parse-navdata"
-      (fact "hand-crafted input"
-        (let [navdata (parse-navdata nav-input)]
-          navdata => (contains {:header 0x55667788})
-          navdata => (contains {:seq-num 870})
-          navdata => (contains {:vision-flag false})
-          (fact "state"
-            (let [state (:state navdata)]
-              state => (contains {:battery :ok})
-              state => (contains {:flying :landed})))
-          (fact "demo"
-            (let [demo (:demo navdata)]
-              (:control-state demo) => :landed
-              (:battery-percentage demo) => 100
-              demo => (contains {:theta (float -1.075) })
-              demo => (contains {:phi (float -2.904) })
-              demo => (contains {:psi (float -0.215) })
-              demo => (contains {:altitude (float 0.0) })
-              demo => (contains {:velocity
-                                 {:x (float 0.0)
-                                  :y (float 0.0)
-                                  :z (float 0.0)}}))))))))
-
-
-(deftest navdata-specimen-tests
-  (facts "parse-navdata on specimen"
-    (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
-      ;;(println "Benchmarking parse-navdata")
-      ;;(criterium/bench (parse-navdata navdata-bytes))
-      ;;(criterium/bench (:gps (parse-navdata navdata-bytes)))
-      (let [navdata (parse-navdata navdata-bytes)]
-        (fact "navdata"
-          (:header navdata) => 0x55667788
-          (:seq-num navdata) => 300711
-          (:vision-flag navdata) => true)
-        (fact "state"
-          (let [state (:state navdata)]
-            state => (contains {:flying :landed})
-            state => (contains {:video :off})
-            state => (contains {:vision :off})
-            state => (contains {:altitude-control :on})
-            state => (contains {:command-ack :received})
-            state => (contains {:camera :ready})
-            state => (contains {:travelling :off})
-            state => (contains {:usb :not-ready})
-            state => (contains {:demo :off})
-            state => (contains {:bootstrap :off})
-            state => (contains {:motors :ok})
-            state => (contains {:communication :ok})
-            state => (contains {:software :ok})
-            state => (contains {:bootstrap :off})
-            state => (contains {:battery :ok})
-            state => (contains {:emergency-landing :off})
-            state => (contains {:timer :not-elapsed})
-            state => (contains {:magneto :ok})
-            state => (contains {:angles :ok})
-            state => (contains {:wind :ok})
-            state => (contains {:ultrasound :ok})
-            state => (contains {:cutout :ok})
-            state => (contains {:pic-version :ok})
-            state => (contains {:atcodec-thread :on})
-            state => (contains {:navdata-thread :on})
-            state => (contains {:video-thread :on})
-            state => (contains {:acquisition-thread :on})
-            state => (contains {:ctrl-watchdog :ok})
-            state => (contains {:adc-watchdog :ok})
-            state => (contains {:com-watchdog :problem})
-            state => (contains {:emergency-landing :off})))
-        (fact "time option"
-          (:time navdata) => 362.979125)
-        (fact "raw-measures option"
-          (let [raw-meas (:raw-measures navdata)]
-            (:accelerometers raw-meas) => {:x 2040
-                                           :y 2036
-                                           :z 2528}
-            (:gyroscopes raw-meas) => {:x -23
-                                       :y 15
-                                       :z 0}
-            (:gyroscopes-110 raw-meas) => {:x 0
-                                           :y 0}
-            (:battery-millivolts raw-meas) => 11686
-            (:us-echo raw-meas) => {:start 0
-                                    :end 0
-                                    :association 3758
-                                    :distance 0}
-            (:us-curve raw-meas) => {:time 21423
-                                     :value 0
-                                     :ref 120}
-            (:echo raw-meas) => {:flag-ini 1
-                                 :num 1
-                                 :sum 3539193}
-            (:alt-temp-raw raw-meas) => 243
-            (:gradient raw-meas) => 41))
-        (fact "phys-measures option"
-          (let [phys-meas (:phys-measures navdata)]
-            (:temperature phys-meas) => {:accelerometer 45.309303283691406
-                                         :gyroscope 55738}
-            (:accelerometers phys-meas) => {:x 80.2970962524414
-                                            :y -33.318603515625
-                                            :z -942.5283203125}
-            (:gyroscopes phys-meas) => {:x -0.11236488074064255
-                                        :y 0.06872134655714035
-                                        :z 0.06200997903943062}
-            (:alim3v3 phys-meas) => 0
-            (:vref-epson phys-meas) => 0
-            (:vref-idg phys-meas) => 0))
-        (fact "wifi option"
-          (let [wifi (:wifi navdata)]
-            (:link-quality wifi) => 1.0))
-        (fact "demo option"
-          (let [demo (:demo navdata)]
-            (:control-state demo) => :landed
-            (:battery-percentage demo) => 50
-            (:theta demo) => (float 2.974)
-            (:phi demo) => (float 0.55)
-            (:psi demo) => (float 1.933)
-            (:altitude demo) => 0.0
-            (:velocity demo) => {:x 0.0585307739675045
-                                 :y -0.8817979097366333
-                                 :z 0.0}))
-        (fact "gps option"
-          (let [gps (:gps navdata)]
-            (:latitude gps) => 34.0903478
-            ;;(:longitude gps) => 0
-            (:elevation gps) => 130.39
-            (:lat0 gps) => 34.090359093568644
-            (:lon0 gps) => -118.276604
-            (:lat-fuse gps) => 34.09035909403431
-            (:lon-fuse gps) => -118.276604
-            (:pdop gps) => 0.0
-            (:speed gps) => 0.4399999976158142
-            (:last-frame-timestamp gps) => 1816.647945
-            (:degree gps) => 170.16000366210938
-            (:degree-mag gps) => 0.0
-            (:channels gps) => [{:sat 22 :cn0 36}
-                                {:sat 15 :cn0 17}
-                                {:sat 11 :cn0 227}
-                                {:sat 11 :cn0 227}
-                                {:sat 18 :cn0 27}
-                                {:sat 29 :cn0 16}
-                                {:sat 21 :cn0 22}
-                                {:sat 16 :cn0 0}
-                                {:sat 27 :cn0 0}
-                                {:sat 30 :cn0 0}
-                                {:sat 12 :cn0 227}
-                                {:sat 12 :cn0 227}]
-            (:gps-plugged gps) => 1
-            (:gps-time gps) => 0.0
-            (:week gps) => 0
-            (:gps-fix gps) => 0
-            (:num-satellites gps) => 0))
-        (fact "magneto option"
-          (let [magneto (:magneto navdata)]
-            (:mx magneto) => 30
-            (:my magneto) => -56
-            (:mz magneto) => 80
-            (:raw magneto) => {:x 189.0 :y -100.8984375 :z -278.4375}
-            (:rectified magneto) => {:x 145.08058166503906
-                                     :y -84.93736267089844
-                                     :z -287.18157958984375}
-            (:offset magneto) => {:x 29.21237564086914
-                                  :y -13.282999038696289
-                                  :z 0.0}
-            (:heading magneto) =>  {:unwrapped (float 0.0)
-                                    :gyro-unwrapped (float 4.132266E-4)
-                                    :fusion-unwrapped (float 1.9333557)}
-            (:calibration-ok magneto) => 1
-            (:state magneto) => 2
-            (:radius magneto) => (float 387.31146)
-            (:error magneto) => {:mean (float -211.51361)
-                                 :variance (float 79.36719)}))
-        (fact "vision-detect option"
-          (let [detections (:vision-detect navdata)]
-            (count detections) => 0))))))
-
-
-(deftest stream-navdata-tests
-  (facts "about stream-navdata"
-    (fact "stream-navdata"
-      (stream-navdata nil socket packet) => anything
-      (provided
-        (receive-navdata anything anything) => 1
-        (get-nav-data :default) => (:nav-data (:default @drones))
-        (get-navdata-bytes anything) => nav-input
-        (get-ip-from-packet anything) => "192.168.1.1")
-      (against-background
-        (before :facts (do
-                         (reset! drones {:default {:nav-data (atom {})
-                                                   :host (InetAddress/getByName "192.168.1.1")
-                                                   :current-belief (atom "None")
-                                                   :current-goal (atom "None")
-                                                   :current-goal-list (atom [])}})
-                         (reset! stop-navstream true))))))
-
   (facts "about parse-nav-state"
     (fact "parse-nav-state"
       (let [state 260048080
@@ -357,6 +137,31 @@
     (which-option-type 16) => :vision-detect
     (which-option-type 2342342) => nil)
 
+  (facts "about parse-control-state"
+    (fact "parse-control-state"
+      (let [bb (doto (gloss.io/to-byte-buffer b-demo-control-state)
+                            (.order ByteOrder/LITTLE_ENDIAN))
+            control-state (.getInt bb)]
+        (parse-control-state control-state) => :landed)))
+
+  (facts "about parse-demo-option"
+    (fact "parse-demo-option"
+      (let [bb (doto (gloss.io/to-byte-buffer
+                      ;; Skip past the option ID and option size.
+                      (drop 4 b-demo-option))
+                 (.order ByteOrder/LITTLE_ENDIAN))
+            option (parse-demo-option bb)]
+        (:control-state option) => :landed
+        (:battery-percentage option) => 100
+        option => (contains {:theta (float -1.075) })
+        option => (contains {:phi (float -2.904) })
+        option => (contains {:psi (float -0.215) })
+        option => (contains {:altitude (float 0.0) })
+        option => (contains {:velocity {:x (float 0.0)
+                                        :y (float 0.0)
+                                        :z (float 0.0)}})
+        option => (contains {:detect-camera-type :roundel-under-drone }))))
+
   (facts "about parse-vision-detect-option"
     (let [detections
           (parse-vision-detect-option
@@ -393,7 +198,218 @@
           (:translation det) => {:x 0.0 :y 0.0 :z 0.0}
           (:rotation det) => {:m11 0.0, :m12 0.0, :m13 0.0,
                               :m21 0.0, :m22 0.0, :m23 0.0,
-                              :m31 0.0, :m32 0.0, :m33 0.0})))))
+                              :m31 0.0, :m32 0.0, :m33 0.0}))))
+
+  (facts "about parse-navdata"
+    (fact "parse-navdata"
+      (fact "hand-crafted input"
+        (let [navdata (parse-navdata nav-input)]
+          navdata => (contains {:header 0x55667788})
+          navdata => (contains {:seq-num 870})
+          navdata => (contains {:vision-flag false})
+          (fact "state"
+            (let [state (:state navdata)]
+              state => (contains {:battery :ok})
+              state => (contains {:flying :landed})))
+          (fact "demo"
+            (let [demo (:demo navdata)]
+              (:control-state demo) => :landed
+              (:battery-percentage demo) => 100
+              demo => (contains {:theta (float -1.075) })
+              demo => (contains {:phi (float -2.904) })
+              demo => (contains {:psi (float -0.215) })
+              demo => (contains {:altitude (float 0.0) })
+              demo => (contains {:velocity
+                                 {:x (float 0.0)
+                                  :y (float 0.0)
+                                  :z (float 0.0)}}))))))))
+
+
+(deftest navdata-specimen-tests
+  (facts "parse-navdata on specimen"
+    (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
+      ;;(println "Benchmarking parse-navdata")
+      ;;(criterium/bench (parse-navdata navdata-bytes))
+      ;;(criterium/bench (:gps (parse-navdata navdata-bytes)))
+      (let [navdata (parse-navdata navdata-bytes)]
+
+        (fact "navdata"
+          (:header navdata) => 0x55667788
+          (:seq-num navdata) => 300711
+          (:vision-flag navdata) => true)
+
+        (fact "state"
+          (let [state (:state navdata)]
+            state => (contains {:flying :landed})
+            state => (contains {:video :off})
+            state => (contains {:vision :off})
+            state => (contains {:altitude-control :on})
+            state => (contains {:command-ack :received})
+            state => (contains {:camera :ready})
+            state => (contains {:travelling :off})
+            state => (contains {:usb :not-ready})
+            state => (contains {:demo :off})
+            state => (contains {:bootstrap :off})
+            state => (contains {:motors :ok})
+            state => (contains {:communication :ok})
+            state => (contains {:software :ok})
+            state => (contains {:bootstrap :off})
+            state => (contains {:battery :ok})
+            state => (contains {:emergency-landing :off})
+            state => (contains {:timer :not-elapsed})
+            state => (contains {:magneto :ok})
+            state => (contains {:angles :ok})
+            state => (contains {:wind :ok})
+            state => (contains {:ultrasound :ok})
+            state => (contains {:cutout :ok})
+            state => (contains {:pic-version :ok})
+            state => (contains {:atcodec-thread :on})
+            state => (contains {:navdata-thread :on})
+            state => (contains {:video-thread :on})
+            state => (contains {:acquisition-thread :on})
+            state => (contains {:ctrl-watchdog :ok})
+            state => (contains {:adc-watchdog :ok})
+            state => (contains {:com-watchdog :problem})
+            state => (contains {:emergency-landing :off})))
+
+        (fact "time option"
+          (:time navdata) => 362.979125)
+
+        (fact "raw-measures option"
+          (let [raw-meas (:raw-measures navdata)]
+            (:accelerometers raw-meas) => {:x 2040
+                                           :y 2036
+                                           :z 2528}
+            (:gyroscopes raw-meas) => {:x -23
+                                       :y 15
+                                       :z 0}
+            (:gyroscopes-110 raw-meas) => {:x 0
+                                           :y 0}
+            (:battery-millivolts raw-meas) => 11686
+            (:us-echo raw-meas) => {:start 0
+                                    :end 0
+                                    :association 3758
+                                    :distance 0}
+            (:us-curve raw-meas) => {:time 21423
+                                     :value 0
+                                     :ref 120}
+            (:echo raw-meas) => {:flag-ini 1
+                                 :num 1
+                                 :sum 3539193}
+            (:alt-temp-raw raw-meas) => 243
+            (:gradient raw-meas) => 41))
+
+        (fact "phys-measures option"
+          (let [phys-meas (:phys-measures navdata)]
+            (:temperature phys-meas) => {:accelerometer 45.309303283691406
+                                         :gyroscope 55738}
+            (:accelerometers phys-meas) => {:x 80.2970962524414
+                                            :y -33.318603515625
+                                            :z -942.5283203125}
+            (:gyroscopes phys-meas) => {:x -0.11236488074064255
+                                        :y 0.06872134655714035
+                                        :z 0.06200997903943062}
+            (:alim3v3 phys-meas) => 0
+            (:vref-epson phys-meas) => 0
+            (:vref-idg phys-meas) => 0))
+
+        (fact "wifi option"
+          (let [wifi (:wifi navdata)]
+            (:link-quality wifi) => 1.0))
+
+        (fact "demo option"
+          (let [demo (:demo navdata)]
+            (:control-state demo) => :landed
+            (:battery-percentage demo) => 50
+            (:theta demo) => (float 2.974)
+            (:phi demo) => (float 0.55)
+            (:psi demo) => (float 1.933)
+            (:altitude demo) => 0.0
+            (:velocity demo) => {:x 0.0585307739675045
+                                 :y -0.8817979097366333
+                                 :z 0.0}))
+
+        (fact "gps option"
+          (let [gps (:gps navdata)]
+            (:latitude gps) => 34.0903478
+            ;;(:longitude gps) => 0
+            (:elevation gps) => 130.39
+            (:lat0 gps) => 34.090359093568644
+            (:lon0 gps) => -118.276604
+            (:lat-fuse gps) => 34.09035909403431
+            (:lon-fuse gps) => -118.276604
+            (:pdop gps) => 0.0
+            (:speed gps) => 0.4399999976158142
+            (:last-frame-timestamp gps) => 1816.647945
+            (:degree gps) => 170.16000366210938
+            (:degree-mag gps) => 0.0
+            (:channels gps) => [{:sat 22 :cn0 36}
+                                {:sat 15 :cn0 17}
+                                {:sat 11 :cn0 227}
+                                {:sat 11 :cn0 227}
+                                {:sat 18 :cn0 27}
+                                {:sat 29 :cn0 16}
+                                {:sat 21 :cn0 22}
+                                {:sat 16 :cn0 0}
+                                {:sat 27 :cn0 0}
+                                {:sat 30 :cn0 0}
+                                {:sat 12 :cn0 227}
+                                {:sat 12 :cn0 227}]
+            (:gps-plugged gps) => 1
+            (:gps-time gps) => 0.0
+            (:week gps) => 0
+            (:gps-fix gps) => 0
+            (:num-satellites gps) => 0))
+
+        (fact "gryos offsets option"
+          (let [gyros (:gyros-offsets navdata)]
+            gyros => {:x -0.5329172611236572
+                      :y 0.1788240224123001,
+                      :z 0.0}))
+
+        (fact "magneto option"
+          (let [magneto (:magneto navdata)]
+            (:mx magneto) => 30
+            (:my magneto) => -56
+            (:mz magneto) => 80
+            (:raw magneto) => {:x 189.0 :y -100.8984375 :z -278.4375}
+            (:rectified magneto) => {:x 145.08058166503906
+                                     :y -84.93736267089844
+                                     :z -287.18157958984375}
+            (:offset magneto) => {:x 29.21237564086914
+                                  :y -13.282999038696289
+                                  :z 0.0}
+            (:heading magneto) =>  {:unwrapped (float 0.0)
+                                    :gyro-unwrapped (float 4.132266E-4)
+                                    :fusion-unwrapped (float 1.9333557)}
+            (:calibration-ok magneto) => 1
+            (:state magneto) => 2
+            (:radius magneto) => (float 387.31146)
+            (:error magneto) => {:mean (float -211.51361)
+                                 :variance (float 79.36719)}))
+        (fact "vision-detect option"
+          (let [detections (:vision-detect navdata)]
+            (count detections) => 0))))))
+
+
+(deftest stream-navdata-tests
+  (facts "about stream-navdata"
+    (fact "stream-navdata"
+      (stream-navdata nil socket packet) => anything
+      (provided
+        (receive-navdata anything anything) => 1
+        (get-nav-data :default) => (:nav-data (:default @drones))
+        (get-navdata-bytes anything) => nav-input
+        (get-ip-from-packet anything) => "192.168.1.1")
+      (against-background
+        (before :facts (do
+                         (reset! drones {:default {:nav-data (atom {})
+                                                   :host (InetAddress/getByName "192.168.1.1")
+                                                   :current-belief (atom "None")
+                                                   :current-goal (atom "None")
+                                                   :current-goal-list (atom [])}})
+                         (reset! stop-navstream true))))))
+  )
 
   ;; (facts "about parse-options"
   ;;   (fact "about parse-options with demo"

@@ -26,6 +26,7 @@
    1 :time
    2 :raw-measures
    3 :phys-measures
+   4 :gyros-offsets
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -297,6 +298,13 @@
 (defn parse-gps-option [bb]
   (gloss.io/decode gps-codec bb))
 
+
+(def gyros-offsets-codec
+  vector3-codec)
+
+(defn parse-gyros-offsets-option [bb]
+  (gloss.io/decode gyros-offsets-codec bb))
+
 (def magneto-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -367,6 +375,7 @@
 (def option-parsers
   {:demo parse-demo-option
    :gps parse-gps-option
+   :gyros-offsets parse-gyros-offsets-option
    :magneto parse-magneto-option
    :phys-measures parse-phys-measures-option
    :raw-measures parse-raw-measures-option
