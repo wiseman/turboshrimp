@@ -213,6 +213,37 @@
 (defn parse-raw-measures-option [bb]
   (gloss.io/decode raw-measures-codec bb))
 
+
+(def references-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :theta :int32-le
+    :phi :int32-le
+    :theta-i :int32-le
+    :phi-i :int32-le
+    :pitch :int32-le
+    :roll :int32-le
+    :yaw :int32-le
+    :psi :int32-le
+    :vx :float32-le
+    :vy :float32-le
+    :theta-mod :float32-le
+    :phi-mod :float32-le
+    :k-v-x :float32-le
+    :k-v-y :float32-le
+    :k-mode :float32-le
+    :ui (gloss/ordered-map
+         :time :float32-le
+         :theta :float32-le
+         :phi :float32-le
+         :psi :float32-le
+         :psi-accuracy :float32-le
+         :seq :int32-le))))
+
+(defn parse-references-option [bb]
+  (gloss.io/decode references-codec bb))
+
+
 (def phys-measures-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -378,6 +409,7 @@
    3 :phys-measures
    4 :gyros-offsets
    5 :euler-angles
+   6 :references
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -391,6 +423,7 @@
    :magneto parse-magneto-option
    :phys-measures parse-phys-measures-option
    :raw-measures parse-raw-measures-option
+   :references parse-references-option
    :time parse-time-option
    :vision-detect parse-vision-detect-option
    :wifi parse-wifi-option})

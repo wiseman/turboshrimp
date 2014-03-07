@@ -392,6 +392,32 @@
             (:radius magneto) => (float 387.31146)
             (:error magneto) => {:mean (float -211.51361)
                                  :variance (float 79.36719)}))
+
+        (fact "references option"
+          (let [ref (:references navdata)]
+            (:theta ref) => 0
+            (:phi ref) => 0
+            (:psi ref) => 0
+            (:theta-i ref) => 0
+            (:phi-i ref) => 0
+            (:pitch ref) => 0
+            (:roll ref) => 0
+            (:yaw ref) => 0
+            (:psi ref) => 0
+            (:vx ref) => 0.0
+            (:vy ref) => 0.0
+            (:theta-mod ref) => 0.0
+            (:phi-mod ref) => 0.0
+            (:k-v-x ref) => 0.0
+            (:k-v-y ref) => 0.0
+            (:k-mode ref) => 0.0
+            (:ui ref) => {:time 0.0
+                          :theta 0.0
+                          :phi 0.0
+                          :psi 0.0
+                          :psi-accuracy 0.0
+                          :seq 0}))
+
         (fact "vision-detect option"
           (let [detections (:vision-detect navdata)]
             (count detections) => 0))))))
