@@ -20,19 +20,6 @@
   (new DatagramPacket data (count data) host port))
 
 
-;; Map from packet option ID to symbolic type.
-(def which-option-type
-  {0 :demo
-   1 :time
-   2 :raw-measures
-   3 :phys-measures
-   4 :gyros-offsets
-   16 :vision-detect
-   22 :magneto
-   26 :wifi
-   27 :gps})
-
-
 ;; Codecs for vectors and matrices used by other codecs.
 
 (gloss/defcodec vector3-codec
@@ -113,6 +100,16 @@
 
 (defn parse-demo-option [bb]
   (gloss.io/decode demo-codec bb))
+
+
+(def euler-angles-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :theta :float32-le
+    :phi :float32-le)))
+
+(defn parse-euler-angles-option [bb]
+  (gloss.io/decode euler-angles-codec bb))
 
 
 (def camera-sources
@@ -372,8 +369,23 @@
    {}
    state-masks))
 
+
+;; Map from packet option ID to symbolic type.
+(def which-option-type
+  {0 :demo
+   1 :time
+   2 :raw-measures
+   3 :phys-measures
+   4 :gyros-offsets
+   5 :euler-angles
+   16 :vision-detect
+   22 :magneto
+   26 :wifi
+   27 :gps})
+
 (def option-parsers
   {:demo parse-demo-option
+   :euler-angles parse-euler-angles-option
    :gps parse-gps-option
    :gyros-offsets parse-gyros-offsets-option
    :magneto parse-magneto-option

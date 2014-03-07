@@ -329,6 +329,11 @@
                                  :y -0.8817979097366333
                                  :z 0.0}))
 
+        (fact "euler angles option"
+          (let [euler (:euler-angles navdata)]
+            (:theta euler) => 4866.0
+            (:phi euler) => 2024.0))
+
         (fact "gps option"
           (let [gps (:gps navdata)]
             (:latitude gps) => 34.0903478
