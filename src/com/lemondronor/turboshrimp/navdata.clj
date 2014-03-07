@@ -45,6 +45,29 @@
   {0 :default, 1 :init, 2 :landed, 3 :flying, 4 :hovering, 5 :test,
    6 :trans-takeoff, 7 :trans-gotofix, 8 :trans-landing, 9 :trans-looping})
 
+
+(def altitude-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :vision :int32-le
+    :velocity :float32-le
+    :ref :int32-le
+    :raw :int32-le
+    :observer (gloss/ordered-map
+               :acceleration :float32-le
+               :altitude :float32-le
+               :x vector3-codec
+               :state :uint32-le)
+    :estimated (gloss/ordered-map
+                :vb (gloss/ordered-map
+                     :x :float32-le
+                     :y :float32-le)
+                :state :uint32-le))))
+
+(defn parse-altitude-option [bb]
+  (gloss.io/decode altitude-codec bb))
+
+
 ;; Types of vision detections.
 (def detection-types
   {0 :horizontal-deprecated,
@@ -465,13 +488,15 @@
    7 :trims
    8 :rc-references
    9 :pwm
+   10 :altitude
    16 :vision-detect
    22 :magneto
    26 :wifi
    27 :gps})
 
 (def option-parsers
-  {:demo parse-demo-option
+  {:altitude parse-altitude-option
+   :demo parse-demo-option
    :euler-angles parse-euler-angles-option
    :gps parse-gps-option
    :gyros-offsets parse-gyros-offsets-option

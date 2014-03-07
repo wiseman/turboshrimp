@@ -317,6 +317,21 @@
           (let [wifi (:wifi navdata)]
             (:link-quality wifi) => 1.0))
 
+        (fact "altitude option"
+          (let [alt (:altitude navdata)]
+            (:vision alt) => 243
+            (:velocity alt) => 0.0
+            (:ref alt) => 0
+            (:raw alt) => 243
+            (:observer alt) => {:acceleration 0.0
+                                :altitude 0.0
+                                :x {:x 0.0
+                                    :y 0.0
+                                    :z 0.0}
+                                :state 0}
+            (:estimated alt) => {:vb {:x 0.0
+                                      :y 0.0}
+                                 :state 0}))
         (fact "demo option"
           (let [demo (:demo navdata)]
             (:control-state demo) => :landed
