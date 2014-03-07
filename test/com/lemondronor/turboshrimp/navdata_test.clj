@@ -138,8 +138,8 @@
                                   :z (float 0.0)}})))))
       (fact "Reading specimen navdata"
         (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
-          ;;(println "Benchmarking parse-navdata")
-          ;;(criterium/bench (parse-navdata navdata-bytes))
+          (println "Benchmarking parse-navdata")
+          (criterium/bench (parse-navdata navdata-bytes))
           (let [navdata (parse-navdata navdata-bytes)]
             (fact "navdata"
               (:header navdata) => 0x55667788
@@ -352,7 +352,7 @@
     (fact "which-option-type"
       (which-option-type 0) => :demo
       (which-option-type 16) => :vision-detect
-      (which-option-type 2342342) => :unknown))
+      (which-option-type 2342342) => nil))
 
   (facts "about parse-tag-detect"
     (fact "parse-tag-detect"

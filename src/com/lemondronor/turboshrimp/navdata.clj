@@ -1,6 +1,7 @@
 (ns com.lemondronor.turboshrimp.navdata
   (:require [gloss.core :as gloss]
-            gloss.io)
+            gloss.io
+            [lazymap.core :as lazymap])
   (:import (java.net DatagramPacket DatagramSocket InetAddress)
            (java.nio ByteBuffer ByteOrder)
            (java.util Arrays)))
@@ -101,7 +102,7 @@
     22 :magneto
     26 :wifi
     27 :gps
-    :unknown))
+    nil))
 
 (gloss/defcodec vector3-codec
   (gloss/ordered-map
@@ -366,12 +367,9 @@
    :vision-detect parse-vision-detect-option
    :wifi parse-wifi-option})
 
-(defn parse-option [bb option-header]
-  (let [option-type (which-option-type option-header)
-        parser (option-parsers option-type)]
-    (if (and option-type parser)
-      {option-type (parser bb)}
-      nil)))
+(defn parse-option [bb option-type]
+  (let [parser (option-parsers option-type)]
+    (parser bb)))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
   (let [ba ^"[B" (Arrays/copyOfRange
@@ -386,23 +384,26 @@
 (defn get-uint [^ByteBuffer bb]
   (bit-and 0xFFFFFFFF (Long. (long (.getInt bb)))))
 
-(defn parse-options [^ByteBuffer bb options]
-  (let [option-header (get-ushort bb)
-        option-size (get-ushort bb)
-        option (when-not (zero? option-size)
-                 (let [^ByteBuffer opt-bb (slice-byte-buffer
-                                           bb
-                                           (.position bb)
-                                           (- option-size 4))
-                       opt (parse-option opt-bb option-header)]
-                   opt))
-        new-options (merge options option)]
-    (let [old-pos (.position bb)
+(defn parse-options [^ByteBuffer bb]
+  (loop [options (lazymap/lazy-hash-map)]
+    (let [option-header (get-ushort bb)
+          option-type (which-option-type option-header)
+          option-size (get-ushort bb)
+          new-options (if option-type
+                        (let [^ByteBuffer opt-bb (slice-byte-buffer
+                                                  bb
+                                                  (.position bb)
+                                                  (- option-size 4))]
+                          (lazymap/lazy-assoc
+                           options
+                           option-type (parse-option opt-bb option-type)))
+                        options)
+          old-pos (.position bb)
           new-pos (+ old-pos (- option-size 4))]
-      (.position bb new-pos))
-    (if (or (zero? option-size) (zero? (.remaining bb)))
-      new-options
-      (parse-options bb new-options))))
+      (.position bb new-pos)
+      (if (or (zero? option-size) (zero? (.remaining bb)))
+        new-options
+        (recur new-options)))))
 
 (def navdata-codec
   (gloss/compile-frame
@@ -420,10 +421,12 @@
         seqnum (get-uint bb)
         vision-flag (= (get-uint bb) 1)
         pstate (parse-nav-state state)
-        options (parse-options bb {})]
-    (merge {:header header :seq-num seqnum :vision-flag vision-flag
-            :state pstate}
-           options)))
+        options (parse-options bb)]
+    (assoc options
+      :header header
+      :seq-num seqnum
+      :vision-flag vision-flag
+      :state pstate)))
 
 ;;    (swap! navdata merge new-data)))
 
