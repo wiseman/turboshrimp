@@ -357,9 +357,6 @@
     (which-option-type 16) => :vision-detect
     (which-option-type 2342342) => nil)
 
-  (fact "parse-vision-detect-tag"
-    (parse-vision-detect-tag 131072) => :vertical-hsync)
-
   (facts "about parse-vision-detect-option"
     (let [detections
           (parse-vision-detect-option

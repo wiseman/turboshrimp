@@ -20,17 +20,16 @@
   (new DatagramPacket data (count data) host port))
 
 
-(defn which-option-type [option]
-  (case (int option)
-    0 :demo
-    1 :time
-    2 :raw-measures
-    3 :phys-measures
-    16 :vision-detect
-    22 :magneto
-    26 :wifi
-    27 :gps
-    nil))
+;; Map from packet option ID to symbolic type.
+(def which-option-type
+  {0 :demo
+   1 :time
+   2 :raw-measures
+   3 :phys-measures
+   16 :vision-detect
+   22 :magneto
+   26 :wifi
+   27 :gps})
 
 
 ;; Codecs for vectors and matrices used by other codecs.
@@ -58,6 +57,7 @@
   {0 :default, 1 :init, 2 :landed, 3 :flying, 4 :hovering, 5 :test,
    6 :trans-takeoff, 7 :trans-gotofix, 8 :trans-landing, 9 :trans-looping})
 
+;; Types of vision detections.
 (def detection-types
   {0 :horizontal-deprecated,
    1 :vertical-deprecated,
@@ -75,26 +75,10 @@
    13 :2nd-verion-shell-tag-front-drone
    14 :tower-side-front-camera})
 
-(def camera-sources
-  {0 :horizontal
-   1 :vertical
-   2 :vertical-hsync})
-
-(defn parse-vision-detect-tag [n]
-  (when n
-    (camera-sources (bit-shift-right n 16))))
-
-(def detect-tag-types
-  {0 :none
-   6 :shell_tag_v2
-   8 :black_roundel})
-
-(defn tag-type-mask [type-num]
-  (bit-shift-left 1 (dec type-num)))
-
 (defn parse-control-state [v]
   (control-states (bit-shift-right v 16)))
 
+;; Codec for the demo option.
 (def demo-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -129,6 +113,11 @@
 (defn parse-demo-option [bb]
   (gloss.io/decode demo-codec bb))
 
+
+(def camera-sources
+  {0 :horizontal
+   1 :vertical
+   2 :vertical-hsync})
 
 (def max-vision-detections 4)
 
