@@ -214,6 +214,19 @@
   (gloss.io/decode raw-measures-codec bb))
 
 
+(def rc-references-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :pitch :int32-le
+    :roll :int32-le
+    :yaw :int32-le
+    :gaz :int32-le
+    :az :int32-le)))
+
+(defn parse-rc-references-option [bb]
+  (gloss.io/decode rc-references-codec bb))
+
+
 (def references-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -424,6 +437,7 @@
    5 :euler-angles
    6 :references
    7 :trims
+   8 :rc-references
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -437,6 +451,7 @@
    :magneto parse-magneto-option
    :phys-measures parse-phys-measures-option
    :raw-measures parse-raw-measures-option
+   :rc-references parse-rc-references-option
    :references parse-references-option
    :time parse-time-option
    :trims parse-trims-option

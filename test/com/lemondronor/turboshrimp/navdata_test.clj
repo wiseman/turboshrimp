@@ -393,6 +393,14 @@
             (:error magneto) => {:mean (float -211.51361)
                                  :variance (float 79.36719)}))
 
+        (fact "rc references option"
+          (let [rc-ref (:rc-references navdata)]
+            (:pitch rc-ref) => 0
+            (:roll rc-ref) => 0
+            (:yaw rc-ref) => 0
+            (:gaz rc-ref) => 0
+            (:az rc-ref) => 0))
+
         (fact "references option"
           (let [ref (:references navdata)]
             (:theta ref) => 0
