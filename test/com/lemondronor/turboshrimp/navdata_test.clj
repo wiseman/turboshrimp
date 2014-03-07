@@ -418,6 +418,12 @@
                           :psi-accuracy 0.0
                           :seq 0}))
 
+        (fact "trims option"
+          (let [trims (:trims navdata)]
+            (:angular-rates trims) => {:r 0.0}
+            (:euler-angles trims) => {:theta (float 3028.916)
+                                      :phi (float 1544.3184)}))
+
         (fact "vision-detect option"
           (let [detections (:vision-detect navdata)]
             (count detections) => 0))))))

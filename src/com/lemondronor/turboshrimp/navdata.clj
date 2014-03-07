@@ -244,6 +244,19 @@
   (gloss.io/decode references-codec bb))
 
 
+(def trims-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :angular-rates (gloss/ordered-map
+                    :r :float32-le)
+    :euler-angles (gloss/ordered-map
+                   :theta :float32-le
+                   :phi :float32-le))))
+
+(defn parse-trims-option [bb]
+  (gloss.io/decode trims-codec bb))
+
+
 (def phys-measures-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -410,6 +423,7 @@
    4 :gyros-offsets
    5 :euler-angles
    6 :references
+   7 :trims
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -425,6 +439,7 @@
    :raw-measures parse-raw-measures-option
    :references parse-references-option
    :time parse-time-option
+   :trims parse-trims-option
    :vision-detect parse-vision-detect-option
    :wifi parse-wifi-option})
 
