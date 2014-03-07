@@ -393,6 +393,26 @@
             (:error magneto) => {:mean (float -211.51361)
                                  :variance (float 79.36719)}))
 
+        (fact "pwm option"
+          (let [pwm (:pwm navdata)]
+            (:motors pwm) => [0 0 0 0]
+            (:sat-motors pwm) => [255 255 255 255]
+            (:gaz-feed-forward pwm) => 0.0
+            (:gaz-altitude pwm) => 0.0
+            (:altitude-integral pwm) => 0.0
+            (:vz-ref pwm) => 0.0
+            (:u-pitch pwm) => 0
+            (:u-roll pwm) => 0
+            (:u-yaw pwm) => 0
+            (:yaw-u-i pwm) => 0
+            (:u-pitch-planif pwm) => 0
+            (:u-roll-planif pwm) => 0
+            (:u-yaw-planif pwm) => 0
+            (:u-gaz-planif pwm) => 0
+            (:motor-currents pwm) => [0 0 0 0]
+            (:altitude-prop pwm) => 0.0
+            (:altitude-der pwm) => 0.0))
+
         (fact "rc references option"
           (let [rc-ref (:rc-references navdata)]
             (:pitch rc-ref) => 0

@@ -285,6 +285,32 @@
 (defn parse-phys-measures-option [bb]
   (gloss.io/decode phys-measures-codec bb))
 
+
+(def pwm-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :motors (repeat 4 :ubyte)
+    :sat-motors (repeat 4 :ubyte)
+    :gaz-feed-forward :float32-le
+    :gaz-altitude :float32-le
+    :altitude-integral :float32-le
+    :vz-ref :float32-le
+    :u-pitch :int32-le
+    :u-roll :int32-le
+    :u-yaw :int32-le
+    :yaw-u-i :int32-le
+    :u-pitch-planif :int32-le
+    :u-roll-planif :int32-le
+    :u-yaw-planif :int32-le
+    :u-gaz-planif :int32-le
+    :motor-currents (repeat 4 :uint16-le)
+    :altitude-prop :float32-le
+    :altitude-der :float32-le)))
+
+(defn parse-pwm-option [bb]
+  (gloss.io/decode pwm-codec bb))
+
+
 (def wifi-codec
   (gloss/compile-frame
    :float32-le
@@ -438,6 +464,7 @@
    6 :references
    7 :trims
    8 :rc-references
+   9 :pwm
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -450,6 +477,7 @@
    :gyros-offsets parse-gyros-offsets-option
    :magneto parse-magneto-option
    :phys-measures parse-phys-measures-option
+   :pwm parse-pwm-option
    :raw-measures parse-raw-measures-option
    :rc-references parse-rc-references-option
    :references parse-references-option
