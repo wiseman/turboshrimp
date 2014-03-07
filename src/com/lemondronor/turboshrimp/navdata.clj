@@ -176,6 +176,18 @@
 (defn parse-vision-detect-option [bb]
   (gloss.io/decode vision-detect-codec bb))
 
+
+(def vision-raw-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :tx :float32-le
+    :ty :float32-le
+    :tz :float32-le)))
+
+(defn parse-vision-raw-option [bb]
+  (gloss.io/decode vision-raw-codec bb))
+
+
 (defn >>> [x n]
   (bit-shift-right (bit-and 0xFFFFFFFF x) n))
 
@@ -489,6 +501,7 @@
    8 :rc-references
    9 :pwm
    10 :altitude
+   11 :vision-raw
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -509,6 +522,7 @@
    :time parse-time-option
    :trims parse-trims-option
    :vision-detect parse-vision-detect-option
+   :vision-raw parse-vision-raw-option
    :wifi parse-wifi-option})
 
 (defn parse-option [bb option-type]

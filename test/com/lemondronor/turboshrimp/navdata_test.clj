@@ -469,7 +469,13 @@
 
         (fact "vision-detect option"
           (let [detections (:vision-detect navdata)]
-            (count detections) => 0))))))
+            (count detections) => 0))
+
+        (fact "vision-raw option"
+          (let [v (:vision-raw navdata)]
+            (:tx v) => 1.3266397714614868
+            (:ty v) => -0.7230937480926514
+            (:tz v) => 0.0))))))
 
 
 (deftest stream-navdata-tests
