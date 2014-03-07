@@ -1,7 +1,6 @@
 (ns com.lemondronor.turboshrimp.navdata
   (:require [gloss.core :as gloss]
-            gloss.io
-            [hexdump.core :as hexdump])
+            gloss.io)
   (:import (java.net DatagramPacket DatagramSocket InetAddress)
            (java.nio ByteBuffer ByteOrder)
            (java.util Arrays)))
@@ -171,7 +170,6 @@
                      :translation vector3-codec)))
    identity
    (fn [demo]
-     ;;(println "BEFORE COOKING" demo)
      (assoc demo
        :control-state (parse-control-state (:control-state demo))
        :theta (float (/ (:theta demo) 1000))
@@ -372,12 +370,8 @@
   (let [option-type (which-option-type option-header)
         parser (option-parsers option-type)]
     (if (and option-type parser)
-      (do
-        (println "PARSING option" option-type)
-        {option-type (parser bb)})
-      (do
-        (println "SKIPPING option" option-header)
-        nil))))
+      {option-type (parser bb)}
+      nil)))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
   (let [ba ^"[B" (Arrays/copyOfRange
@@ -401,17 +395,13 @@
                                            (.position bb)
                                            (- option-size 4))
                        opt (parse-option opt-bb option-header)]
-                   ;;(when opt (println "NEW OPT" opt))
                    opt))
         new-options (merge options option)]
     (let [old-pos (.position bb)
           new-pos (+ old-pos (- option-size 4))]
-      ;;(println "old-pos" old-pos "option-size" option-size "new-pos" new-pos)
       (.position bb new-pos))
     (if (or (zero? option-size) (zero? (.remaining bb)))
-      (do
-        ;;(println "returning options" new-options)
-        new-options)
+      new-options
       (parse-options bb new-options))))
 
 (def navdata-codec
@@ -423,8 +413,6 @@
     :vision-flag :uint32-le)))
 
 (defn parse-navdata [navdata-bytes]
-  ;;(println "==================== parse-navdata")
-  ;;(hexdump/hexdump (seq navdata-bytes))
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
                          (.order ByteOrder/LITTLE_ENDIAN))
         header (get-uint bb)
@@ -432,10 +420,6 @@
         seqnum (get-uint bb)
         vision-flag (= (get-uint bb) 1)
         pstate (parse-nav-state state)
-        ;; _ (println "header" header
-        ;;            "state" state pstate
-        ;;            "seqnum" seqnum
-        ;;            "vision-flag" vision-flag)
         options (parse-options bb {})]
     (merge {:header header :seq-num seqnum :vision-flag vision-flag
             :state pstate}
