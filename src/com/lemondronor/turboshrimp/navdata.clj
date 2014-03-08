@@ -177,6 +177,16 @@
   (gloss.io/decode vision-detect-codec bb))
 
 
+(def vision-of-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :dx (repeat 5 :float32-le)
+    :dy (repeat 5 :float32-le))))
+
+(defn parse-vision-of-option [bb]
+  (gloss.io/decode vision-of-codec bb))
+
+
 (def vision-raw-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -502,6 +512,7 @@
    9 :pwm
    10 :altitude
    11 :vision-raw
+   12 :vision-of
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -522,6 +533,7 @@
    :time parse-time-option
    :trims parse-trims-option
    :vision-detect parse-vision-detect-option
+   :vision-of parse-vision-of-option
    :vision-raw parse-vision-raw-option
    :wifi parse-wifi-option})
 

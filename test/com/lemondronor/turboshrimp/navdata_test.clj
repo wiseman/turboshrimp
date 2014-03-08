@@ -471,6 +471,11 @@
           (let [detections (:vision-detect navdata)]
             (count detections) => 0))
 
+        (fact "vision-of option"
+          (let [v (:vision-of navdata)]
+            (:dx v) => [0.0 0.0 0.0 0.0 0.0]
+            (:dy v) => [0.0 0.0 0.0 0.0 0.0]))
+
         (fact "vision-raw option"
           (let [v (:vision-raw navdata)]
             (:tx v) => 1.3266397714614868
