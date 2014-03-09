@@ -224,6 +224,14 @@
                                   :y (float 0.0)
                                   :z (float 0.0)}}))))))))
 
+
+(defn test-adc-data-frame-option [navdata]
+  (fact "adc-data-frame option"
+    (let [adc (:adc-data-frame navdata)]
+      (:version adc) => 0
+      (:data-frame adc) => (repeat 32 0))))
+
+
 (defn test-gps-option [navdata]
   (fact "gps option"
     (let [gps (:gps navdata)]
@@ -355,6 +363,8 @@
             state => (contains {:adc-watchdog :ok})
             state => (contains {:com-watchdog :problem})
             state => (contains {:emergency-landing :off})))
+
+        (test-adc-data-frame-option navdata)
 
         (fact "time option"
           (:time navdata) => 362.979125)

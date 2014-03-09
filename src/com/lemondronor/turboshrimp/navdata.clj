@@ -46,6 +46,16 @@
    6 :trans-takeoff, 7 :trans-gotofix, 8 :trans-landing, 9 :trans-looping})
 
 
+(def adc-data-frame-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :version :uint32-le
+    :data-frame (repeat 32 :ubyte))))
+
+(defn parse-adc-data-frame-option [bb]
+  (gloss.io/decode adc-data-frame-codec bb))
+
+
 (def altitude-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -590,12 +600,14 @@
    15 :trackers-send
    16 :vision-detect
    17 :watchdog
+   18 :adc-data-frame
    22 :magneto
    26 :wifi
    27 :gps})
 
 (def option-parsers
-  {:altitude parse-altitude-option
+  {:adc-data-frame parse-adc-data-frame-option
+   :altitude parse-altitude-option
    :demo parse-demo-option
    :euler-angles parse-euler-angles-option
    :gps parse-gps-option
