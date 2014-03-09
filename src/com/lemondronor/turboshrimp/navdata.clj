@@ -135,6 +135,53 @@
   (gloss.io/decode euler-angles-codec bb))
 
 
+(defn >>> [x n]
+  (bit-shift-right (bit-and 0xFFFFFFFF x) n))
+
+(defn drone-time-to-seconds [time]
+  (let [;; First 11 bits are seconds.
+        seconds (>>> time 21)
+        ;; Last 21 bits are microseconds.
+        microseconds (>>> (bit-shift-left time 11) 11)]
+    (+ seconds (/ microseconds 1000000.0))))
+
+
+(def vision-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :state :uint32-le
+    :misc :int32-le
+    :phi (gloss/ordered-map
+          :trim :float32-le
+          :ref-prop :float32-le)
+    :theta (gloss/ordered-map
+            :trim :float32-le
+            :ref-prop :float32-le)
+    :new-raw-picture :int32-le
+    :capture (gloss/ordered-map
+              :theta :float32-le
+              :phi :float32-le
+              :psi :float32-le
+              :altitude :int32-le
+              :time :uint32-le)
+    :body-v vector3-codec
+    :delta (gloss/ordered-map
+            :phi :float32-le
+            :theta :float32-le
+            :psi :float32-le)
+    :gold (gloss/ordered-map
+           :defined :uint32-le
+           :reset :uint32-le
+           :x :float32-le
+           :y :float32-le))
+   identity
+   (fn [v]
+     (update-in v [:capture :time] drone-time-to-seconds))))
+
+(defn parse-vision-option [bb]
+  (gloss.io/decode vision-codec bb))
+
+
 (def camera-sources
   {0 :horizontal
    1 :vertical
@@ -196,17 +243,6 @@
 
 (defn parse-vision-raw-option [bb]
   (gloss.io/decode vision-raw-codec bb))
-
-
-(defn >>> [x n]
-  (bit-shift-right (bit-and 0xFFFFFFFF x) n))
-
-(defn drone-time-to-seconds [time]
-  (let [;; First 11 bits are seconds.
-        seconds (>>> time 21)
-        ;; Last 21 bits are microseconds.
-        microseconds (>>> (bit-shift-left time 11) 11)]
-    (+ seconds (/ microseconds 1000000.0))))
 
 
 (def time-codec
@@ -513,6 +549,7 @@
    10 :altitude
    11 :vision-raw
    12 :vision-of
+   13 :vision
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -532,6 +569,7 @@
    :references parse-references-option
    :time parse-time-option
    :trims parse-trims-option
+   :vision parse-vision-option
    :vision-detect parse-vision-detect-option
    :vision-of parse-vision-of-option
    :vision-raw parse-vision-raw-option
