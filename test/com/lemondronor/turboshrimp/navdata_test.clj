@@ -302,6 +302,13 @@
       (:custom v) => [0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
                       0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0])))
 
+
+(defn test-watchdog-option [navdata]
+  (fact "watchdog option"
+    (let [w (:watchdog navdata)]
+      w => 4822)))
+
+
 (deftest navdata-specimen-tests
   (facts "parse-navdata on specimen"
     (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
@@ -533,7 +540,9 @@
           (let [v (:vision-raw navdata)]
             (:tx v) => 1.3266397714614868
             (:ty v) => -0.7230937480926514
-            (:tz v) => 0.0))))))
+            (:tz v) => 0.0))
+
+        (test-watchdog-option navdata)))))
 
 
 (deftest stream-navdata-tests

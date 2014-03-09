@@ -260,6 +260,14 @@
   (gloss.io/decode vision-raw-codec bb))
 
 
+(def watchdog-codec
+  (gloss/compile-frame
+   :uint32-le))
+
+(defn parse-watchdog-option [bb]
+  (gloss.io/decode watchdog-codec bb))
+
+
 (def time-codec
   (gloss/compile-frame
    :uint32-le
@@ -581,6 +589,7 @@
    14 :vision-perf
    15 :trackers-send
    16 :vision-detect
+   17 :watchdog
    22 :magneto
    26 :wifi
    27 :gps})
@@ -605,6 +614,7 @@
    :vision-of parse-vision-of-option
    :vision-perf parse-vision-perf-option
    :vision-raw parse-vision-raw-option
+   :watchdog  parse-watchdog-option
    :wifi parse-wifi-option})
 
 (defn parse-option [bb option-type]
