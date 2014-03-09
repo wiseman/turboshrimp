@@ -283,6 +283,18 @@
                     :y 0.0})))
 
 
+(defn test-vision-perf-option [navdata]
+  (fact "vision-perf option"
+    (let [v (:vision-perf navdata)]
+      (:szo v) => 0.0
+      (:corners v) => 0.0
+      (:compute v) => 0.0
+      (:tracking v) => 0.0
+      (:trans v) => 0.0
+      (:update v) => 0.0
+      (:custom v) => [0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+                      0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0])))
+
 (deftest navdata-specimen-tests
   (facts "parse-navdata on specimen"
     (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
@@ -505,6 +517,8 @@
           (let [v (:vision-of navdata)]
             (:dx v) => [0.0 0.0 0.0 0.0 0.0]
             (:dy v) => [0.0 0.0 0.0 0.0 0.0]))
+
+        (test-vision-perf-option navdata)
 
         (fact "vision-raw option"
           (let [v (:vision-raw navdata)]
