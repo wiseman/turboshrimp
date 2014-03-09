@@ -258,6 +258,13 @@
       (:num-satellites gps) => 0)))
 
 
+(defn test-trackers-send-option [navdata]
+  (fact "trackers-send option"
+    (let [ts (:trackers-send navdata)]
+      (:locked ts) => (repeat 30 0)
+      (:point ts) => (repeat 30 {:x 0 :y 0}))))
+
+
 (defn test-vision-option [navdata]
   (fact "vision option"
     (let [v (:vision navdata)]
@@ -500,6 +507,8 @@
                           :psi 0.0
                           :psi-accuracy 0.0
                           :seq 0}))
+
+        (test-trackers-send-option navdata)
 
         (fact "trims option"
           (let [trims (:trims navdata)]

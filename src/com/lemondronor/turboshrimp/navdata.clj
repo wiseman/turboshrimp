@@ -269,6 +269,19 @@
 (defn parse-time-option [bb]
   (gloss.io/decode time-codec bb))
 
+
+(def trackers-send-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :locked (repeat 30 :int32-le)
+    :point (repeat 30 (gloss/ordered-map
+                       :x :int32-le
+                       :y :int32-le)))))
+
+(defn parse-trackers-send-option [bb]
+  (gloss.io/decode trackers-send-codec bb))
+
+
 (def raw-measures-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -566,6 +579,7 @@
    12 :vision-of
    13 :vision
    14 :vision-perf
+   15 :trackers-send
    16 :vision-detect
    22 :magneto
    26 :wifi
@@ -584,6 +598,7 @@
    :rc-references parse-rc-references-option
    :references parse-references-option
    :time parse-time-option
+   :trackers-send parse-trackers-send-option
    :trims parse-trims-option
    :vision parse-vision-option
    :vision-detect parse-vision-detect-option
