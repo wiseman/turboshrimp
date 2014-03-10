@@ -6,7 +6,7 @@
   (:import (java.net DatagramPacket DatagramSocket InetAddress)))
 
 
-(def default-drone-ip "192.168.1.1")
+(def default-drone-hostname "192.168.1.1")
 (def default-at-port 5556)
 (def navdata-port 5554)
 (def drones (atom {}))
@@ -15,20 +15,24 @@
 (declare drone-init-navdata)
 
 
-(defn drone-initialize
-  ([] (drone-initialize :default default-drone-ip default-at-port))
-  ([name ip at-port]
-     (swap! drones assoc name {:host (InetAddress/getByName ip)
-                               :at-port at-port
-                               :counter (atom 0)
-                               :at-socket (DatagramSocket. )
-                               :nav-agent (agent {})
-                               :navdata-socket (DatagramSocket. )
-                               :nav-data (atom {})
-                               :current-goal-list (atom [])
-                               :current-goal (atom "None")
-                               :current-belief (atom [])})
-     (mdrone name :flat-trim)))
+(defn drone-initialize [& options]
+  (let [{:keys [name hostname at-port]} options]
+    {:name (or name :default)
+     :host (InetAddress/getByName
+            (or hostname default-drone-hostname))
+     :at-port (or at-port default-at-port)
+     :counter (atom 0)
+     :at-socket (DatagramSocket.)
+     :nav-agent (agent {})
+     :navdata-socket (DatagramSocket.)
+     :nav-data (atom {})}))
+
+
+(defn connect [drone]
+  (swap! drones assoc (:name drone) drone)
+  (mdrone (:name drone) :flat-trim)
+  drone)
+
 
 (defn drone-ip [drone-name]
    (.getHostName ^InetAddress (:host (drone-name @drones))))

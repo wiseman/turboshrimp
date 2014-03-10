@@ -7,22 +7,25 @@
 
 (deftest core-tests
   (fact "default initialize gets default host and port"
-    (.getHostName (:host (:default @ar-drone/drones))) => ar-drone/default-drone-ip
-    (:at-port (:default @ar-drone/drones)) => ar-drone/default-at-port
-    @(:counter (:default @ar-drone/drones)) => 1
-    (against-background (before :facts (ar-drone/drone-initialize))))
+    (let [drone (ar-drone/drone-initialize)]
+      (.getHostName (:host drone)) => ar-drone/default-drone-hostname
+      (:at-port drone) => ar-drone/default-at-port
+      @(:counter drone) => 0))
 
   (fact "custom initiliaze uses custom name host and port"
-    (.getHostName (:host (:frank @ar-drone/drones))) => "192.168.2.2"
-    (:at-port (:frank @ar-drone/drones)) => 4444
-    @(:counter (:frank @ar-drone/drones)) => 1
-    (against-background (before :facts (ar-drone/drone-initialize :frank "192.168.2.2" 4444))))
+    (let [drone (ar-drone/drone-initialize
+                 :name :frank
+                 :hostname "192.168.2.2"
+                 :at-port 4444)]
+      (.getHostName (:host drone)) => "192.168.2.2"
+      (:at-port drone) => 4444
+      @(:counter drone) => 0))
 
   (fact "drone command passes along the data to send-command"
-    (ar-drone/drone :take-off) => anything
-    (provided
-      (ar-drone/send-command :default "AT*REF=2,290718208\r") => 1)
-    (against-background (before :facts (ar-drone/drone-initialize))))
+    (let [drone (ar-drone/connect (ar-drone/drone-initialize))]
+      (ar-drone/drone :take-off) => anything
+      (provided
+        (ar-drone/send-command :default "AT*REF=2,290718208\r") => 1)))
 
   (fact "drone-do-for command calls drone command every 30 sec"
     (ar-drone/drone-do-for 1 :take-off) => anything
