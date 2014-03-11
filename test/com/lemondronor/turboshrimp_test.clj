@@ -8,7 +8,7 @@
 (deftest core-tests
   (fact "default initialize gets default host and port"
     (let [drone (ar-drone/drone-initialize)]
-      (.getHostName (:host drone)) => ar-drone/default-drone-hostname
+      (.getHostName (:host drone)) => ar-drone/default-hostname
       (:at-port drone) => ar-drone/default-at-port
       @(:counter drone) => 0))
 

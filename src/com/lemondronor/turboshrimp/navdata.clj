@@ -8,13 +8,6 @@
 
 (set! *warn-on-reflection* true)
 
-(def stop-navstream (atom false))
-(def log-data (atom [:seq-num :pstate :com-watchdog :communication
-                     :control-state :roll :pitch :yaw :altitude]))
-(defn end-navstream [] (reset! stop-navstream true))
-(defn reset-navstream [] (reset! stop-navstream false))
-(defn set-log-data [data] (reset! log-data data))
-
 
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
   (new DatagramPacket data (count data) host port))
@@ -700,6 +693,3 @@
 
 (defn get-navdata-bytes  [^DatagramPacket datagram-packet]
   (.getData datagram-packet))
-
-(defn log-flight-data [navdata]
-  (select-keys @navdata @log-data))

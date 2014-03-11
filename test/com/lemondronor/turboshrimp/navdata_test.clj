@@ -6,6 +6,7 @@
             [criterium.core :as criterium]
             [gloss.io]
             [midje.sweet :refer :all]
+            [midje.util :refer :all]
             [com.lemondronor.turboshrimp.navdata :refer :all]
             [com.lemondronor.turboshrimp :refer :all])
   (:import (java.net InetAddress DatagramSocket)
@@ -555,24 +556,24 @@
         (test-watchdog-option navdata)))))
 
 
-(deftest stream-navdata-tests
-  (facts "about stream-navdata"
-    (fact "stream-navdata"
-      (stream-navdata nil socket packet) => anything
-      (provided
-        (receive-navdata anything anything) => 1
-        (get-nav-data :default) => (:nav-data (:default @drones))
-        (get-navdata-bytes anything) => nav-input
-        (get-ip-from-packet anything) => "192.168.1.1")
-      (against-background
-        (before :facts (do
-                         (reset! drones {:default {:nav-data (atom {})
-                                                   :host (InetAddress/getByName "192.168.1.1")
-                                                   :current-belief (atom "None")
-                                                   :current-goal (atom "None")
-                                                   :current-goal-list (atom [])}})
-                         (reset! stop-navstream true))))))
-  )
+(testable-privates stream-navdata)
+
+;; (deftest stream-navdata-tests
+;;   (facts "about stream-navdata"
+;;     (fact "stream-navdata"
+;;       (stream-navdata nil socket packet) => anything
+;;       (provided
+;;         (receive-navdata anything anything) => 1
+;;         (get-nav-data :default) => (:nav-data (:default @drones))
+;;         (get-navdata-bytes anything) => nav-input
+;;         (get-ip-from-packet anything) => "192.168.1.1")
+;;       (against-background
+;;         (before :facts (do
+;;                          (reset! drones {:default {:nav-data (atom {})
+;;                                                    :host (InetAddress/getByName "192.168.1.1")}})
+;;                          ;;(reset! stop-navstream true)
+;;                          )))))
+;;   )
 
   ;; (facts "about parse-options"
   ;;   (fact "about parse-options with demo"
