@@ -39,7 +39,7 @@
                  ">")))
 
 
-(defn drone-initialize [& options]
+(defn make-drone [& options]
   (let [{:keys [name hostname at-port]} options]
     (map->Drone
      {:name (or name :default)

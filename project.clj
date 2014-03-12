@@ -8,6 +8,7 @@
                  [org.clojure/clojure "1.5.1"]]
   :profiles {:dev {:dependencies [[com.lemonodor/xio "0.1.0"]
                                   [criterium "0.4.3"]
+                                  [expectations "2.0.6"]
                                   [midje "1.6.2"]]
                    :plugins [[lein-midje "3.1.3"]]}
              :test {:jvm-opts ["-server"]}})

@@ -7,13 +7,13 @@
 
 (deftest core-tests
   (fact "default initialize gets default host and port"
-    (let [drone (ar-drone/drone-initialize)]
+    (let [drone (ar-drone/make-drone)]
       (.getHostName (:host drone)) => ar-drone/default-hostname
       (:at-port drone) => ar-drone/default-at-port
       @(:counter drone) => 0))
 
   (fact "custom initiliaze uses custom name host and port"
-    (let [drone (ar-drone/drone-initialize
+    (let [drone (ar-drone/make-drone
                  :name :frank
                  :hostname "192.168.2.2"
                  :at-port 4444)]
@@ -22,7 +22,7 @@
       @(:counter drone) => 0))
 
   (fact "drone command passes along the data to send-command"
-    (let [drone (ar-drone/connect (ar-drone/drone-initialize))]
+    (let [drone (ar-drone/connect (ar-drone/make-drone))]
       (ar-drone/drone :take-off) => anything
       (provided
         (ar-drone/send-command :default "AT*REF=2,290718208\r") => 1)))
@@ -31,7 +31,7 @@
     (ar-drone/drone-do-for 1 :take-off) => anything
     (provided
       (ar-drone/mdrone :default :take-off nil nil nil nil) => 1 :times #(< 0 %1))
-    (against-background (before :facts (ar-drone/drone-initialize))))
+    (against-background (before :facts (ar-drone/make-drone))))
 
   (fact "find-drone finds the drone by ip"
     (ar-drone/find-drone "192.168.1.2") => {:drone2 {:host (InetAddress/getByName"192.168.1.2")}}
