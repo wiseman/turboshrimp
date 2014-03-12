@@ -12,8 +12,6 @@
 (def navdata-port 5554)
 (def drones (atom {}))
 (def socket-timeout (atom 60000))
-(declare mdrone)
-(declare drone-init-navdata)
 
 
 (defrecord Drone
@@ -54,12 +52,6 @@
       :navdata-socket (DatagramSocket.)
       :nav-data (atom {})})))
 
-(defn connect! [drone]
-  (swap! drones assoc (:name drone) drone)
-  (mdrone (:name drone) :flat-trim)
-  drone)
-
-
 (defn send-at-command [name ^String data]
   (let [^InetAddress host (:host (name @drones))
         ^Long at-port (:at-port (name @drones))
@@ -76,6 +68,11 @@
 
 (defn drone [command-key & [w x y z]]
   (mdrone :default command-key w x y z))
+
+(defn connect! [drone]
+  (swap! drones assoc (:name drone) drone)
+  (mdrone (:name drone) :flat-trim)
+  drone)
 
 (defn mdrone-do-for [name seconds command-key & [w x y z]]
   (when (pos? seconds)
