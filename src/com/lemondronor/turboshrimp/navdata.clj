@@ -9,10 +9,6 @@
 (set! *warn-on-reflection* true)
 
 
-(defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
-  (new DatagramPacket data (count data) host port))
-
-
 ;; Codecs for vectors and matrices used by other codecs.
 
 (gloss/defcodec vector3-codec
@@ -684,6 +680,9 @@
       :state pstate)))
 
 ;;    (swap! navdata merge new-data)))
+
+(defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
+  (DatagramPacket. data (count data) host port))
 
 (defn send-navdata  [^DatagramSocket navdata-socket datagram-packet]
   (.send navdata-socket datagram-packet))

@@ -60,7 +60,7 @@
   drone)
 
 
-(defn send-command [name ^String data]
+(defn send-at-command [name ^String data]
   (let [^InetAddress host (:host (name @drones))
         ^Long at-port (:at-port (name @drones))
         ^DatagramSocket at-socket (:at-socket (name @drones))]
@@ -72,7 +72,7 @@
   (let [counter (:counter (name @drones))
         seq-num (swap! counter inc)
         data (at/build-command command-key seq-num w x y z)]
-    (send-command name data)))
+    (send-at-command name data)))
 
 (defn drone [command-key & [w x y z]]
   (mdrone :default command-key w x y z))

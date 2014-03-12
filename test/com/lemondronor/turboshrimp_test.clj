@@ -21,12 +21,12 @@
       (:at-port drone) => 4444
       @(:counter drone) => 0))
 
-  (fact "drone command passes along the data to send-command"
+  (fact "drone command passes along the data to send-at-command"
     (let [drone (ar-drone/make-drone)]
       (ar-drone/connect! drone)
       (ar-drone/drone :take-off) => anything
       (provided
-        (ar-drone/send-command :default "AT*REF=2,290718208\r") => 1)))
+        (ar-drone/send-at-command :default "AT*REF=2,290718208\r") => 1)))
 
   (fact "drone-do-for command calls drone command every 30 sec"
     (ar-drone/drone-do-for 1 :take-off) => anything
