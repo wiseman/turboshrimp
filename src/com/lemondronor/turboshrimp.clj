@@ -1,4 +1,5 @@
 (ns com.lemondronor.turboshrimp
+  "Control and telemetry library for the AR.Drone."
   (:require [com.lemondronor.turboshrimp.at :as at]
             [com.lemondronor.turboshrimp.goals :as goals]
             [com.lemondronor.turboshrimp.navdata :as navdata]
@@ -32,8 +33,8 @@
 
 (defmethod print-method Drone [d ^java.io.Writer w]
   (.write w (str "#<Drone "
-                 (drone-ip d)
-                 (if (drones (:name d))
+                 (drone-ip d) " "
+                 (if (@drones (:name d))
                    "[connected]"
                    "[not connected]")
                  ">")))
