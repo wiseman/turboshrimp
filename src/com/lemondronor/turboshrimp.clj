@@ -15,28 +15,49 @@
 (declare drone-init-navdata)
 
 
+(defrecord Drone
+    [name
+     host
+     at-port
+     counter
+     at-socket
+     navdata-agent
+     navdata-handler
+     navdata-socket
+     nav-data])
+
+
+(defn drone-ip [drone]
+   (.getHostName ^InetAddress (:host drone)))
+
+(defmethod print-method Drone [d ^java.io.Writer w]
+  (.write w (str "#<Drone "
+                 (drone-ip d)
+                 (if (drones (:name d))
+                   "[connected]"
+                   "[not connected]")
+                 ">")))
+
+
 (defn drone-initialize [& options]
   (let [{:keys [name hostname at-port]} options]
-    {:name (or name :default)
-     :host (InetAddress/getByName
-            (or hostname default-hostname))
-     :at-port (or at-port default-at-port)
-     :counter (atom 0)
-     :at-socket (DatagramSocket.)
-     :navdata-agent (agent {})
-     :navdata-handler (atom nil)
-     :navdata-socket (DatagramSocket.)
-     :nav-data (atom {})}))
-
+    (map->Drone
+     {:name (or name :default)
+      :host (InetAddress/getByName
+             (or hostname default-hostname))
+      :at-port (or at-port default-at-port)
+      :counter (atom 0)
+      :at-socket (DatagramSocket.)
+      :navdata-agent (agent {})
+      :navdata-handler (atom nil)
+      :navdata-socket (DatagramSocket.)
+      :nav-data (atom {})})))
 
 (defn connect [drone]
   (swap! drones assoc (:name drone) drone)
   (mdrone (:name drone) :flat-trim)
   drone)
 
-
-(defn drone-ip [drone-name]
-   (.getHostName ^InetAddress (:host (drone-name @drones))))
 
 (defn send-command [name ^String data]
   (let [^InetAddress host (:host (name @drones))
