@@ -22,7 +22,8 @@
       @(:counter drone) => 0))
 
   (fact "drone command passes along the data to send-command"
-    (let [drone (ar-drone/connect (ar-drone/make-drone))]
+    (let [drone (ar-drone/make-drone)]
+      (ar-drone/connect! drone)
       (ar-drone/drone :take-off) => anything
       (provided
         (ar-drone/send-command :default "AT*REF=2,290718208\r") => 1)))

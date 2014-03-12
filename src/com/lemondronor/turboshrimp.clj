@@ -53,7 +53,7 @@
       :navdata-socket (DatagramSocket.)
       :nav-data (atom {})})))
 
-(defn connect [drone]
+(defn connect! [drone]
   (swap! drones assoc (:name drone) drone)
   (mdrone (:name drone) :flat-trim)
   drone)
