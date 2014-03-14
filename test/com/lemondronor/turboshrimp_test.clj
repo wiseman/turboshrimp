@@ -21,28 +21,18 @@
       (:at-port drone) => 4444
       @(:counter drone) => 0))
 
-  (fact "drone command passes along the data to send-at-command"
+  (fact "command passes along the data to send-at-command"
     (let [drone (ar-drone/make-drone)]
       (ar-drone/connect! drone)
-      (ar-drone/drone :take-off) => anything
+      (ar-drone/command drone :take-off) => anything
       (provided
-        (ar-drone/send-at-command :default "AT*REF=2,290718208\r") => 1)))
+        (ar-drone/send-at-command drone "AT*REF=2,290718208\r") => 1)))
 
   (fact "drone-do-for command calls drone command every 30 sec"
-    (ar-drone/drone-do-for 1 :take-off) => anything
-    (provided
-      (ar-drone/mdrone :default :take-off nil nil nil nil) => 1 :times #(< 0 %1))
-    (against-background (before :facts (ar-drone/make-drone))))
-
-  (fact "find-drone finds the drone by ip"
-    (ar-drone/find-drone "192.168.1.2") => {:drone2 {:host (InetAddress/getByName"192.168.1.2")}}
-    (against-background
-      (before :facts
-              (reset! ar-drone/drones
-                      {:drone1 {:host
-                                (InetAddress/getByName "192.168.1.1")}
-                       :drone2 {:host
-                                (InetAddress/getByName"192.168.1.2")}})))))
+    (let [drone (ar-drone/make-drone)]
+      (ar-drone/drone-do-for drone 1 :take-off) => anything
+      (provided
+        (ar-drone/command drone :take-off nil nil nil nil) => 1 :times #(< 0 %1)))))
 
 
 

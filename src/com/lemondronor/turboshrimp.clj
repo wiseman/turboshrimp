@@ -1,7 +1,6 @@
 (ns com.lemondronor.turboshrimp
   "Control and telemetry library for the AR.Drone."
   (:require [com.lemondronor.turboshrimp.at :as at]
-            [com.lemondronor.turboshrimp.goals :as goals]
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [taoensso.timbre :as log])
   (:import (java.io IOException)
@@ -9,10 +8,16 @@
 
 (set! *warn-on-reflection* true)
 
+;; The default drone hostname/IP address.
 (def default-hostname "192.168.1.1")
+
+;; The default port to use for AT control commands.
 (def default-at-port 5556)
+
+;; The default port to connect to for navdata.
 (def navdata-port 5554)
-(def drones (atom {}))
+
+;; The default drone communication timeout, in milliseconds.
 (def socket-timeout (atom 60000))
 
 
@@ -23,6 +28,8 @@
      counter
      at-socket
      keep-streaming-navdata
+     connected?
+     event-handler
      navdata-handler
      navdata-socket
      nav-data])
@@ -34,7 +41,7 @@
 (defmethod print-method Drone [d ^java.io.Writer w]
   (.write w (str "#<Drone "
                  (drone-ip d) " "
-                 (if (@drones (:name d))
+                 (if (:connected? d)
                    "[connected]"
                    "[not connected]")
                  ">")))
@@ -45,6 +52,7 @@
         name (or name :default)]
     (map->Drone
      {:name name
+      :connected? (atom false)
       :event-handler event-handler
       :host (InetAddress/getByName
              (or hostname default-hostname))
@@ -56,22 +64,19 @@
       :navdata-socket (DatagramSocket.)
       :nav-data (atom {})})))
 
-(defn send-at-command [name ^String data]
-  (let [^InetAddress host (:host (name @drones))
-        ^Long at-port (:at-port (name @drones))
-        ^DatagramSocket at-socket (:at-socket (name @drones))]
-    (log/info "Sending command to" name data)
+(defn send-at-command [drone ^String data]
+  (let [^InetAddress host (:host drone)
+        ^Long at-port (:at-port drone)
+        ^DatagramSocket at-socket (:at-socket drone)]
+    (log/info "Sending command to" drone data)
     (.send at-socket
            (new DatagramPacket (.getBytes data) (.length data) host at-port))))
 
-(defn mdrone [name command-key & [w x y z]]
-  (let [counter (:counter (name @drones))
+(defn command [drone command-key & [w x y z]]
+  (let [counter (:counter drone)
         seq-num (swap! counter inc)
         data (at/build-command command-key seq-num w x y z)]
-    (send-at-command name data)))
-
-(defn drone [command-key & [w x y z]]
-  (mdrone :default command-key w x y z))
+    (send-at-command drone data)))
 
 (defn- navdata-error-handler [drone]
   (fn [agent exception]
@@ -119,27 +124,21 @@
 
 
 (defn connect! [drone]
-  (swap! drones assoc (:name drone) drone)
   (start-navdata! drone)
-  (mdrone (:name drone) :flat-trim)
+  (command drone :flat-trim)
   drone)
 
-(defn mdrone-do-for [name seconds command-key & [w x y z]]
+(defn drone-do-for [drone seconds command-key & [w x y z]]
   (when (pos? seconds)
-    (mdrone name command-key w x y z)
+    (command drone command-key w x y z)
     (Thread/sleep 30)
-    (recur name (- seconds 0.03) command-key [w x y z])))
+    (recur drone (- seconds 0.03) command-key [w x y z])))
 
-(defn drone-do-for [seconds command-key & [w x y z]]
-  (mdrone-do-for :default seconds command-key w x y z))
 
-(defn find-drone [ip]
-  (select-keys @drones (for [[k v] @drones :when (= ip (.getHostAddress ^InetAddress (:host v)))] k)))
+(defn get-nav-data [drone]
+  (:nav-data drone))
 
-(defn get-nav-data [name]
-  (:nav-data (name @drones)))
-
-(defn communication-check [name]
-  (when (= :problem (:com-watchdog @(get-nav-data name)))
+(defn communication-check [drone]
+  (when (= :problem (:com-watchdog @(get-nav-data drone)))
     (log/info "Watchdog Reset")
-    (mdrone name :reset-watchdog)))
+    (command drone :reset-watchdog)))
