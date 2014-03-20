@@ -10,5 +10,6 @@
                                   [criterium "0.4.3"]
                                   [expectations "2.0.6"]
                                   [midje "1.6.2"]]
-                   :plugins [[lein-midje "3.1.3"]]}
+                   :plugins [[lein-cloverage "1.0.2"]
+                             [lein-midje "3.1.3"]]}
              :test {:jvm-opts ["-server"]}})
