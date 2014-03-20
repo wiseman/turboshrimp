@@ -1,6 +1,6 @@
 # turboshrimp
 
-[![Build Status](https://travis-ci.org/wiseman/clj-viterbi.png?branch=master)](https://travis-ci.org/wiseman/clj-viterbi)
+[![Build Status](https://travis-ci.org/wiseman/clj-viterbi.png?branch=master)](https://travis-ci.org/wiseman/clj-viterbi) [![Coverage Status](https://coveralls.io/repos/wiseman/turboshrimp/badge.png?branch=master)](https://coveralls.io/r/wiseman/turboshrimp?branch=master)
 
 Turboshrimp is a clojure API for the Parrot AR.Drone.
 
