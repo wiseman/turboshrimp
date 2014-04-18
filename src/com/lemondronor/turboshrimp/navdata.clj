@@ -593,7 +593,8 @@
    18 :adc-data-frame
    22 :magneto
    26 :wifi
-   27 :gps})
+   27 :gps
+   0xffff :checksum})
 
 (def option-parsers
   {:adc-data-frame parse-adc-data-frame-option
@@ -637,28 +638,30 @@
 (defn get-uint [^ByteBuffer bb]
   (bit-and 0xFFFFFFFF (Long. (long (.getInt bb)))))
 
+(defn check-checksum [value bb]
+  (log/debug "CHECKSUM"))
+
 (defn parse-options [^ByteBuffer bb]
   (loop [options (lazymap/lazy-hash-map)]
     (let [option-header (get-ushort bb)
           option-type (which-option-type option-header)
-          option-size (get-ushort bb)
-          new-options (if option-type
-                        (let [^ByteBuffer opt-bb (slice-byte-buffer
-                                                  bb
-                                                  (.position bb)
-                                                  (- option-size 4))]
-                          (lazymap/lazy-assoc
-                           options
-                           option-type (parse-option opt-bb option-type)))
-                        options)
-          old-pos (.position bb)
-          new-pos (+ old-pos (- option-size 4))]
-      (when (= option-header 0xffff)
-        (log/warn "CHECKSUM" (get-uint bb)))
-      (.position bb new-pos)
-      (if (= option-header 0xffff)
-        new-options
-        (recur new-options)))))
+          option-size (get-ushort bb)]
+      (if (= option-type :checksum)
+        (do
+          (check-checksum (get-uint bb) bb)
+          options)
+        (let [old-pos (.position bb)
+              new-pos (+ old-pos (- option-size 4))]
+          (.position bb new-pos)
+          (if option-type
+            (recur
+             (lazymap/lazy-assoc
+              options
+              option-type
+              (parse-option
+               (slice-byte-buffer bb old-pos (- option-size 4))
+               option-type)))
+            (recur options)))))))
 
 (def navdata-codec
   (gloss/compile-frame
@@ -669,6 +672,7 @@
     :vision-flag :uint32-le)))
 
 (defn parse-navdata [navdata-bytes]
+  (log/debug "-- parse-navdata")
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
                          (.order ByteOrder/LITTLE_ENDIAN))
         header (get-uint bb)
