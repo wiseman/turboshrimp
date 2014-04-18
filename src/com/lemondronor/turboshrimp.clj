@@ -97,10 +97,17 @@
 
 
 (defn raise-event [drone event-type & args]
+  (log/debug "Event" event-type args)
   (when-let [handler (:event-handler drone)]
     (apply handler event-type args)))
 
+(defn communication-check [drone navdata]
+  (when (= :problem (-> navdata :state :com-watchdog))
+    (log/info "Watchdog Reset")
+    (command drone :reset-watchdog)))
+
 (defn process-navdata [drone navdata]
+  (communication-check drone navdata)
   (raise-event drone :navdata navdata))
 
 (defn- navdata-thread-fn [drone]
@@ -109,16 +116,20 @@
         ^DatagramPacket packet (navdata/new-datagram-packet
                                 (byte-array 2048) (:host drone) navdata-port)]
     (loop []
-      (when @(:keep-streaming-navdata drone)
-        (try
-          (do
-            (navdata/receive-navdata socket packet)
-            (log/debug packet)
-            (process-navdata drone (navdata/parse-navdata (.getData packet))))
-          (catch IOException e
-            (reset! (:keep-streaming-navdata drone) false)
-            (raise-event drone :error e)))
-        (recur)))))
+      (if @(:keep-streaming-navdata drone)
+        (do
+          (try
+            (do
+              (navdata/receive-navdata socket packet)
+              (log/debug packet)
+              (process-navdata drone (navdata/parse-navdata (.getData packet))))
+            (catch IOException e
+              (log/error e "Whoa")
+              (reset! (:keep-streaming-navdata drone) false)
+              (raise-event drone :error e)))
+          (recur))
+        (do
+          (log/info "Disconnecting thread for" drone))))))
 
 (defn- start-navdata! [drone]
   (reset! (:keep-streaming-navdata drone) true)
@@ -146,7 +157,3 @@
 (defn get-nav-data [drone]
   (:nav-data drone))
 
-(defn communication-check [drone]
-  (when (= :problem (:com-watchdog @(get-nav-data drone)))
-    (log/info "Watchdog Reset")
-    (command drone :reset-watchdog)))
