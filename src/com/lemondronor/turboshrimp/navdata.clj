@@ -1,7 +1,8 @@
 (ns com.lemondronor.turboshrimp.navdata
   (:require [gloss.core :as gloss]
             gloss.io
-            [lazymap.core :as lazymap])
+            [lazymap.core :as lazymap]
+            [clojure.tools.logging :as log])
   (:import (java.net DatagramPacket DatagramSocket InetAddress)
            (java.nio ByteBuffer ByteOrder)
            (java.util Arrays)))
@@ -619,6 +620,7 @@
    :wifi parse-wifi-option})
 
 (defn parse-option [bb option-type]
+  (log/debug "Parsing navdata option" option-type)
   (let [parser (option-parsers option-type)]
     (parser bb)))
 
@@ -651,8 +653,10 @@
                         options)
           old-pos (.position bb)
           new-pos (+ old-pos (- option-size 4))]
+      (when (= option-header 0xffff)
+        (log/warn "CHECKSUM" (get-uint bb)))
       (.position bb new-pos)
-      (if (or (zero? option-size) (zero? (.remaining bb)))
+      (if (= option-header 0xffff)
         new-options
         (recur new-options)))))
 

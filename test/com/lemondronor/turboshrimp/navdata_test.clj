@@ -69,10 +69,18 @@
                                     b-vision-detect-width b-vision-detect-height b-vision-detect-dist
                                     b-vision-detect-orient-angle b-vision-detect-rotation b-vision-detect-translation
                                     b-vision-detect-camera-source)))
+(def b-checksum-option-id [-1 -1])
+(def b-checksum-option-size [0x08 0x00])
+(def b-checksum-option-checksum [0x00 0x00 0x00 0x00])
+(def b-checksum-option
+  (flatten (conj b-checksum-option-id b-checksum-option-size
+                 b-checksum-option-checksum)))
 
-(def b-options (flatten (conj b-demo-option b-vision-detect-option)))
 (def header (map byte [-120 119 102 85]))
-(def nav-input  (byte-array (map byte (flatten (conj b-header b-state b-seqnum b-vision b-demo-option b-vision-detect-option)))))
+(def nav-input
+  (byte-array (map byte (flatten (conj b-header b-state b-seqnum b-vision
+                                       b-demo-option b-vision-detect-option
+                                       b-checksum-option)))))
 (def host (InetAddress/getByName "192.168.1.1"))
 (def port 5554)
 (def socket (DatagramSocket. ))

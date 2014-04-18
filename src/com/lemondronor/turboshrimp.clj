@@ -1,12 +1,13 @@
 (ns com.lemondronor.turboshrimp
   "Control and telemetry library for the AR.Drone."
-  (:require [com.lemondronor.turboshrimp.at :as at]
-            [com.lemondronor.turboshrimp.navdata :as navdata]
-            [taoensso.timbre :as log])
+  (:require [clojure.tools.logging :as log]
+            [com.lemondronor.turboshrimp.at :as at]
+            [com.lemondronor.turboshrimp.navdata :as navdata])
   (:import (java.io IOException)
            (java.net DatagramPacket DatagramSocket InetAddress)))
 
 (set! *warn-on-reflection* true)
+
 
 ;; The default drone hostname/IP address.
 (def default-hostname "192.168.1.1")
@@ -20,6 +21,9 @@
 ;; The default drone communication timeout, in milliseconds.
 (def socket-timeout (atom 60000))
 
+
+;; This record represents a drone.  The connected?, counter,
+;; keep-streaming-navdata and navdata-handler fields are atoms.
 
 (defrecord Drone
     [name
@@ -41,13 +45,15 @@
 (defmethod print-method Drone [d ^java.io.Writer w]
   (.write w (str "#<Drone "
                  (drone-ip d) " "
-                 (if (:connected? d)
+                 (if @(:connected? d)
                    "[connected]"
                    "[not connected]")
                  ">")))
 
 
-(defn make-drone [& options]
+(defn make-drone
+  "Creates a drone object."
+  [& options]
   (let [{:keys [name hostname at-port event-handler]} options
         name (or name :default)]
     (map->Drone
@@ -98,6 +104,7 @@
   (raise-event drone :navdata navdata))
 
 (defn- navdata-thread-fn [drone]
+  (log/info "Running navdata thread for" drone)
   (let [^DatagramSocket socket (:navdata-socket drone)
         ^DatagramPacket packet (navdata/new-datagram-packet
                                 (byte-array 2048) (:host drone) navdata-port)]
@@ -106,6 +113,7 @@
         (try
           (do
             (navdata/receive-navdata socket packet)
+            (log/debug packet)
             (process-navdata drone (navdata/parse-navdata (.getData packet))))
           (catch IOException e
             (reset! (:keep-streaming-navdata drone) false)
