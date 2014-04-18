@@ -646,6 +646,8 @@
     (let [option-header (get-ushort bb)
           option-type (which-option-type option-header)
           option-size (get-ushort bb)]
+      ;; From the developer guide: "The checksum is always the last
+      ;; option (data block) in the navdata packet."
       (if (= option-type :checksum)
         (do
           (check-checksum (get-uint bb) bb)
