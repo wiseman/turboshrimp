@@ -156,4 +156,3 @@
 
 (defn get-nav-data [drone]
   (:nav-data drone))
-
