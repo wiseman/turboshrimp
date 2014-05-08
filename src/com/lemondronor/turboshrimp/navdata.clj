@@ -448,6 +448,8 @@
     :sat :ubyte
     :cn0 :ubyte)))
 
+;; These definitions come from from
+;; https://github.com/lesire/ardrone_autonomy/commit/a986b3380da8d9306407e2ebfe7e0f2cd5f97683
 (def gps-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -456,37 +458,39 @@
     :elevation :float64-le
     :hdop :float64-le
     :data-available :int32-le
-    :unk-0 (repeat 8 :ubyte)
+    :zero-validated :int32-le
+    :wpt-validated :int32-le
     :lat0 :float64-le
     :lon0 :float64-le
     :lat-fuse :float64-le
     :lon-fuse :float64-le
     :gps-state :uint32-le
-    :unk-1 (repeat 40 :ubyte)
+    :x-traj :float32-le
+    :x-ref :float32-le
+    :y-traj :float32-le
+    :y-ref :float32-le
+    :theta-p :float32-le
+    :phi-p :float32-le
+    :theta-i :float32-le
+    :phi-i :float32-le
+    :theta-d :float32-le
+    :phi-d :float32-le
     :vdop :float64-le
     :pdop :float64-le
     :speed :float32-le
     :last-frame-timestamp :uint32-le
     :degree :float32-le
     :degree-mag :float32-le
-    :unk-2 (repeat 16 :ubyte)
+    :ehpe :float32-le
+    :ehve :float32-le
+    :c-n0 :float32-le
+    :num-satellites :uint32-le
     :channels (repeat 12 gps-sat-channel-codec)
     :gps-plugged :int32-le
-    :unk-3 (repeat 108 :ubyte)
-    :gps-time :float64-le
-    :week :uint16-le
-    :gps-fix :ubyte
-    :num-satellites :ubyte
-    :unk-4 (repeat 24 :ubyte)
-    :ned-vel-c0 :float64-le
-    :ned-vel-c1 :float64-le
-    :ned-vel-c2 :float64-le
-    :speed-accur :float32-le
-    :time-accur :float32-le
-    :unk-5 (repeat 72 :ubyte)
-    :temperature :float32-le
-    :pressure :float32-le
-    :unk-5 (repeat 24 :ubyte))
+    :ephemeris-status :uint32-le
+    :vx-traj :float32-le
+    :vy-traj :float32-le
+    :firmware-status :uint32-le)
    identity
    (fn [gps]
      (assoc gps :last-frame-timestamp
@@ -699,7 +703,6 @@
     '()
     (let [option-header (get-ushort bb)
           option-size (get-ushort bb)]
-      (log/info "Processing option" option-header "of" option-size "bytes")
       (if (pos? option-size)
         (cons [(or (which-option-type option-header) option-header)
                (slice-byte-buffer bb 0 option-size)]

@@ -244,35 +244,55 @@
 (defn test-gps-option [navdata]
   (fact "gps option"
     (let [gps (:gps navdata)]
-      (:latitude gps) => 34.0903478
-      ;;(:longitude gps) => 0
-      (:elevation gps) => 130.39
-      (:lat0 gps) => 34.090359093568644
-      (:lon0 gps) => -118.276604
-      (:lat-fuse gps) => 34.09035909403431
-      (:lon-fuse gps) => -118.276604
+      (:latitude gps) => 34.0905016
+      (:longitude gps) => -118.2766877
+      (:elevation gps) => 122.64
+      (:hdop gps) => 1.0
+      (:data-available gps) => 7
+      (:zero-validated gps) => 1
+      (:wpt-validated gps) => 0
+      (:lat0 gps) => 34.0905016
+      (:lon0 gps) => -118.2766877
+      (:lat-fuse gps) => 34.0904833
+      (:lon-fuse gps) => -118.2766982
+      (:gps-state gps) => 1
+      (:x-traj gps) => 0.0
+      (:x-ref gps) => 0.0
+      (:y-traj gps) => 0.0
+      (:y-ref gps) => 0.0
+      (:theta-p gps) => 0.0
+      (:phi-p gps) => 0.0
+      (:theta-i gps) => 0.0
+      (:phi-i gps) => 0.0
+      (:theta-d gps) => 0.0
+      (:phi-d gps) => 0.0
+      (:vdop gps) => 0.0
       (:pdop gps) => 0.0
-      (:speed gps) => 0.4399999976158142
-      (:last-frame-timestamp gps) => 1816.647945
-      (:degree gps) => 170.16000366210938
+      (:speed gps) => (roughly 0.1)
+      (:last-frame-timestamp gps) => 2.409591
+      (:degree gps) => (roughly 141.01)
       (:degree-mag gps) => 0.0
-      (:channels gps) => [{:sat 22 :cn0 36}
-                          {:sat 15 :cn0 17}
-                          {:sat 11 :cn0 227}
-                          {:sat 11 :cn0 227}
-                          {:sat 18 :cn0 27}
-                          {:sat 29 :cn0 16}
-                          {:sat 21 :cn0 22}
-                          {:sat 16 :cn0 0}
-                          {:sat 27 :cn0 0}
-                          {:sat 30 :cn0 0}
-                          {:sat 12 :cn0 227}
-                          {:sat 12 :cn0 227}]
+      (:ehpe gps) => (roughly 8.26)
+      (:ehve gps) => (roughly 0.42999998)
+      (:c-n0 gps) => 28.0
+      (:num-satellites gps) => 9
+      (:channels gps) => [{:cn0 26, :sat 10}
+                          {:cn0 21, :sat 5}
+                          {:cn0 27, :sat 8}
+                          {:cn0 17, :sat 3}
+                          {:cn0 18, :sat 13}
+                          {:cn0 32, :sat 7}
+                          {:cn0 23, :sat 9}
+                          {:cn0 9, :sat 27}
+                          {:cn0 19, :sat 19}
+                          {:cn0 29, :sat 28}
+                          {:cn0 26, :sat 30}
+                          {:cn0 0, :sat 138}]
       (:gps-plugged gps) => 1
-      (:gps-time gps) => 0.0
-      (:week gps) => 0
-      (:gps-fix gps) => 0
-      (:num-satellites gps) => 0)))
+      (:ephemeris-status gps) => 73
+      (:vx-traj gps) => 0.0
+      (:vy-traj gps) => 0.0
+      (:firmware-status gps) => 1)))
 
 
 (defn test-trackers-send-option [navdata]
@@ -325,6 +345,11 @@
     (let [w (:watchdog navdata)]
       w => 4822)))
 
+
+;; (deftest whatever
+;;   (facts "yeah"
+;;     (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
+;;       (pprint/pprint (navdata-bytes-seq navdata-bytes)))))
 
 (deftest navdata-specimen-tests
   (facts "parse-navdata on specimen"
