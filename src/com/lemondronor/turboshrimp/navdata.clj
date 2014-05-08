@@ -629,8 +629,10 @@
   (let [ba ^"[B" (Arrays/copyOfRange
                   ^"[B" (.array bb)
                   offset
-                  (+ offset len))]
-    (ByteBuffer/wrap ba)))
+                  (+ offset len))
+        bb (ByteBuffer/wrap ba)]
+    (.order bb ByteOrder/LITTLE_ENDIAN)
+    bb))
 
 (defn get-ushort [^ByteBuffer bb]
   (bit-and 0xFFFF (Integer. (int (.getShort bb)))))
@@ -673,6 +675,7 @@
     :seqnum :uint32-le
     :vision-flag :uint32-le)))
 
+
 (defn parse-navdata [navdata-bytes]
   (log/debug "-- parse-navdata")
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
@@ -689,7 +692,34 @@
       :vision-flag vision-flag
       :state pstate)))
 
-;;    (swap! navdata merge new-data)))
+
+
+(defn options-bytes-seq [^ByteBuffer bb]
+  (if (zero? (.remaining bb))
+    '()
+    (let [option-header (get-ushort bb)
+          option-size (get-ushort bb)]
+      (log/info "Processing option" option-header "of" option-size "bytes")
+      (if (pos? option-size)
+        (cons [(or (which-option-type option-header) option-header)
+               (slice-byte-buffer bb 0 option-size)]
+              (lazy-seq
+               (options-bytes-seq
+                (slice-byte-buffer
+                 bb option-size (+ 4 (- (.remaining bb) option-size))))))
+        (do
+          (log/info "Aborting 0-length option.")
+          '())))))
+
+
+(defn navdata-bytes-seq [navdata-bytes]
+  (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
+                             (.order ByteOrder/LITTLE_ENDIAN))]
+    [(slice-byte-buffer bb 0 16)
+     (options-bytes-seq
+      (slice-byte-buffer bb 16 (- (count navdata-bytes) 16)))]))
+
+
 
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
   (DatagramPacket. data (count data) host port))
