@@ -14,7 +14,6 @@
 ;; vector 31 is 3 floats
 (def b-matrix33  (vec (repeat (* 9 4) 0 )))
 (def b-vector31  (vec (repeat (* 3 4) 0 )))
-(* 12 4)
 
 (def b-header [-120 119 102 85])
 (def b-state [-48 4 -128 15])

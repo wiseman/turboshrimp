@@ -8,7 +8,8 @@
                  [gloss "0.2.2"]
                  [org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]]
-  :profiles {:dev {:dependencies [[criterium "0.4.3"]]
+  :profiles {:dev {:dependencies [[criterium "0.4.3"]
+                                  [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]
                              [lein-midje "3.1.3"]]}
              :test {:jvm-opts ["-server"]}})

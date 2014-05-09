@@ -1,10 +1,11 @@
 (ns com.lemondronor.turboshrimp-test
   (:import (java.net DatagramPacket InetAddress))
   (:require [clojure.test :refer :all]
-            [com.lemondronor.turboshrimp :as ar-drone]))
+            [com.lemondronor.turboshrimp :as ar-drone]
+            [echo.test.mock :as mock]))
 
 
-(deftest core-tests
+(deftest turboshrimp-tests
   (testing "default initialize gets default host and port"
     (let [drone (ar-drone/make-drone)]
       (is (= (.getHostName (:host drone)) ar-drone/default-hostname))
@@ -20,20 +21,26 @@
       (is (= (:at-port drone) 4444))
       (is (= @(:counter drone) 0))))
 
-  ;; (fact "command passes along the data to send-at-command"
-  ;;   (let [drone (ar-drone/make-drone)]
-  ;;     (ar-drone/connect! drone)
-  ;;     (ar-drone/command drone :take-off) => anything
-  ;;     (provided
-  ;;       (ar-drone/send-at-command drone "AT*REF=2,290718208\r") => 1)))
+  (testing "command passes along the data to send-at-command"
+    (let [drone (ar-drone/make-drone)]
+      (mock/expect
+       [ar-drone/send-at-command
+        (->>
+         (mock/has-args [drone "AT*FTRIM=1,\r"])
+         (mock/times 1))]
+       (ar-drone/connect! drone))
+      (mock/expect
+        [ar-drone/send-at-command
+        (->>
+         (mock/has-args [drone "AT*REF=2,290718208\r"])
+         (mock/times 1))]
+       (ar-drone/command drone :take-off))))
 
-  ;; (fact "drone-do-for command calls drone command every 30 sec"
-  ;;   (let [drone (ar-drone/make-drone)]
-  ;;     (ar-drone/drone-do-for drone 1 :take-off) => anything
-  ;;     (provided
-  ;;       (ar-drone/command drone :take-off nil nil nil nil) => 1 :times #(< 0 %1))))
-  )
-
-
-
-;; (run-tests 'clj-drone.core-test)
+  (testing "drone-do-for command calls drone command every 30 sec"
+    (let [drone (ar-drone/make-drone)]
+      (mock/expect
+       [ar-drone/command
+        (->>
+         (mock/has-args [drone :take-off nil nil nil nil])
+         (mock/times #(< 0 %)))]
+       (ar-drone/drone-do-for drone 1 :take-off)))))
