@@ -12,7 +12,7 @@
       (is (= (:at-port drone) ar-drone/default-at-port))
       (is (= @(:counter drone) 0))))
 
-  (testing "custom initiliaze uses custom name host and port"
+  (testing "custom initialize uses custom name host and port"
     (let [drone (ar-drone/make-drone
                  :name :frank
                  :hostname "192.168.2.2"

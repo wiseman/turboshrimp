@@ -1,8 +1,8 @@
 (ns com.lemondronor.turboshrimp.navdata
-  (:require [gloss.core :as gloss]
+  (:require [clojure.tools.logging :as log]
             gloss.io
-            [lazymap.core :as lazymap]
-            [clojure.tools.logging :as log])
+            [gloss.core :as gloss]
+            [lazymap.core :as lazymap])
   (:import (java.net DatagramPacket DatagramSocket InetAddress)
            (java.nio ByteBuffer ByteOrder)
            (java.util Arrays)))

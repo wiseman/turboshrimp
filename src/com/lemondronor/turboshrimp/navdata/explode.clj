@@ -1,8 +1,6 @@
 (ns com.lemondronor.turboshrimp.navdata.explode
-  (:require
-   [clojure.java.io :as io]
-   [com.lemondronor.turboshrimp.navdata :as navdata]
-   [com.lemonodor.xio :as xio])
+  (:require [com.lemondronor.turboshrimp.navdata :as navdata]
+            [com.lemonodor.xio :as xio])
   (:gen-class))
 
 
