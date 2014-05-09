@@ -342,11 +342,6 @@
       (is (= w 4822)))))
 
 
-;; (deftest whatever
-;;   (testing "yeah"
-;;     (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
-;;       (pprint/pprint (navdata-bytes-seq navdata-bytes)))))
-
 (deftest navdata-specimen-tests
   (testing "parse-navdata on specimen"
     (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))]
@@ -586,35 +581,3 @@
             (is (= (:tz v) 0.0))))
 
         (test-watchdog-option navdata)))))
-
-
-;;(testable-privates stream-navdata)
-
-;; (deftest stream-navdata-tests
-;;   (testing "about stream-navdata"
-;;     (fact "stream-navdata"
-;;       (stream-navdata nil socket packet) anything
-;;       (provided
-;;         (receive-navdata anything anything) 1
-;;         (get-nav-data :default) (:nav-data (:default @drones))
-;;         (get-navdata-bytes anything) nav-input
-;;         (get-ip-from-packet anything) "192.168.1.1")
-;;       (against-background
-;;         (before :testing (do
-;;                          (reset! drones {:default {:nav-data (atom {})
-;;                                                    :host (InetAddress/getByName "192.168.1.1")}})
-;;                          ;;(reset! stop-navstream true)
-;;                          )))))
-;;   )
-
-  ;; (testing "about parse-options"
-  ;;   (fact "about parse-options with demo"
-  ;;     (let [option (parse-options b-demo-option 0 {})]
-  ;;       option (contains {:control-state :landed})))
-  ;;   (fact "about parse option with targets"
-  ;;     (let [option (parse-options b-target-option 0 {})]
-  ;;       option (contains {:targets-num 2})))
-  ;;   (fact "about parse-options with demo and targets"
-  ;;     (let [options (parse-options nav-input 16 {})]
-  ;;       options (contains {:control-state :landed})
-  ;;       options (contains {:targets-num 2}))))
