@@ -36,6 +36,65 @@
    6 :trans-takeoff, 7 :trans-gotofix, 8 :trans-landing, 9 :trans-looping})
 
 
+(def state-masks
+  [ {:name :flying             :mask 0  :values [:landed :flying]}
+    {:name :video              :mask 1  :values [:off :on]}
+    {:name :vision             :mask 2  :values [:off :on]}
+    {:name :control            :mask 3  :values [:euler-angles :angular-speed]}
+    {:name :altitude-control   :mask 4  :values [:off :on]}
+    {:name :user-feedback      :mask 5  :values [:off :on]}
+    {:name :command-ack        :mask 6  :values [:none :received]}
+    {:name :camera             :mask 7  :values [:not-ready :ready]}
+    {:name :travelling         :mask 8  :values [:off :on]}
+    {:name :usb                :mask 9  :values [:not-ready :ready]}
+    {:name :demo               :mask 10 :values [:off :on]}
+    {:name :bootstrap          :mask 11 :values [:off :on]}
+    {:name :motors             :mask 12 :values [:ok :motor-problem]}
+    {:name :communication      :mask 13 :values [:ok :communication-lost]}
+    {:name :software           :mask 14 :values [:ok :software-fault]}
+    {:name :battery            :mask 15 :values [:ok :too-low]}
+    {:name :emergency-landing  :mask 16 :values [:off :on]}
+    {:name :timer              :mask 17 :values [:not-elapsed :elapsed]}
+    {:name :magneto            :mask 18 :values [:ok :needs-calibration]}
+    {:name :angles             :mask 19 :values [:ok :out-of-range]}
+    {:name :wind               :mask 20 :values [:ok :too-much]}
+    {:name :ultrasound         :mask 21 :values [:ok :deaf]}
+    {:name :cutout             :mask 22 :values [:ok :detected]}
+    {:name :pic-version        :mask 23 :values [:bad-version :ok]}
+    {:name :atcodec-thread     :mask 24 :values [:off :on]}
+    {:name :navdata-thread     :mask 25 :values [:off :on]}
+    {:name :video-thread       :mask 26 :values [:off :on]}
+    {:name :acquisition-thread :mask 27 :values [:off :on]}
+    {:name :ctrl-watchdog      :mask 28 :values [:ok :delay]}
+    {:name :adc-watchdog       :mask 29 :values [:ok :delay]}
+    {:name :com-watchdog       :mask 30 :values [:ok :problem]}
+    {:name :emergency          :mask 31 :values [:ok :detected]}
+    ])
+
+(defn parse-nav-state [state]
+  (reduce
+   #(let  [{:keys [name mask values]} %2
+           bvalue (bit-and state (bit-shift-left 1 mask))]
+      (conj %1 {name
+                (if (= 0 bvalue) (first values) (last values))}))
+   {}
+   state-masks))
+
+
+(def navdata-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :header :uint32-le
+    :state :uint32-le
+    :seq-num :uint32-le
+    :vision-flag :uint32-le)
+   identity
+   (fn [navdata]
+     (assoc navdata
+       :vision-flag (= (:vision-flag navdata) 1)
+       :state (parse-nav-state (:state navdata))))))
+
+
 (def adc-data-frame-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -529,51 +588,6 @@
 (defn parse-magneto-option [bb]
   (gloss.io/decode magneto-codec bb))
 
-(def state-masks
-  [ {:name :flying             :mask 0  :values [:landed :flying]}
-    {:name :video              :mask 1  :values [:off :on]}
-    {:name :vision             :mask 2  :values [:off :on]}
-    {:name :control            :mask 3  :values [:euler-angles :angular-speed]}
-    {:name :altitude-control   :mask 4  :values [:off :on]}
-    {:name :user-feedback      :mask 5  :values [:off :on]}
-    {:name :command-ack        :mask 6  :values [:none :received]}
-    {:name :camera             :mask 7  :values [:not-ready :ready]}
-    {:name :travelling         :mask 8  :values [:off :on]}
-    {:name :usb                :mask 9  :values [:not-ready :ready]}
-    {:name :demo               :mask 10 :values [:off :on]}
-    {:name :bootstrap          :mask 11 :values [:off :on]}
-    {:name :motors             :mask 12 :values [:ok :motor-problem]}
-    {:name :communication      :mask 13 :values [:ok :communication-lost]}
-    {:name :software           :mask 14 :values [:ok :software-fault]}
-    {:name :battery            :mask 15 :values [:ok :too-low]}
-    {:name :emergency-landing  :mask 16 :values [:off :on]}
-    {:name :timer              :mask 17 :values [:not-elapsed :elapsed]}
-    {:name :magneto            :mask 18 :values [:ok :needs-calibration]}
-    {:name :angles             :mask 19 :values [:ok :out-of-range]}
-    {:name :wind               :mask 20 :values [:ok :too-much]}
-    {:name :ultrasound         :mask 21 :values [:ok :deaf]}
-    {:name :cutout             :mask 22 :values [:ok :detected]}
-    {:name :pic-version        :mask 23 :values [:bad-version :ok]}
-    {:name :atcodec-thread     :mask 24 :values [:off :on]}
-    {:name :navdata-thread     :mask 25 :values [:off :on]}
-    {:name :video-thread       :mask 26 :values [:off :on]}
-    {:name :acquisition-thread :mask 27 :values [:off :on]}
-    {:name :ctrl-watchdog      :mask 28 :values [:ok :delay]}
-    {:name :adc-watchdog       :mask 29 :values [:ok :delay]}
-    {:name :com-watchdog       :mask 30 :values [:ok :problem]}
-    {:name :emergency          :mask 31 :values [:ok :detected]}
-    ])
-
-(defn parse-nav-state [state]
-  (reduce
-   #(let  [{:keys [name mask values]} %2
-           bvalue (bit-and state (bit-shift-left 1 mask))]
-      (conj %1 {name
-                (if (= 0 bvalue) (first values) (last values))}))
-   {}
-   state-masks))
-
-
 ;; Map from packet option ID to symbolic type.
 (def which-option-type
   {0 :demo
@@ -626,8 +640,9 @@
 
 (defn parse-option [bb option-type]
   (log/debug "Parsing navdata option" option-type)
-  (let [parser (option-parsers option-type)]
-    (parser bb)))
+  (if-let [parser (option-parsers option-type)]
+    (parser bb)
+    bb))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
   (let [ba ^"[B" (Arrays/copyOfRange
@@ -636,6 +651,12 @@
                   (+ offset len))
         bb (ByteBuffer/wrap ba)]
     (.order bb ByteOrder/LITTLE_ENDIAN)
+    bb))
+
+(defn parse-option2 [^ByteBuffer bb option-type]
+  (log/debug "Parsing navdata option" option-type)
+  (if-let [parser (option-parsers option-type)]
+    (parser (slice-byte-buffer bb 4 (- (.remaining bb) 4)))
     bb))
 
 (defn get-ushort [^ByteBuffer bb]
@@ -671,48 +692,19 @@
                option-type)))
             (recur options)))))))
 
-(def navdata-codec
-  (gloss/compile-frame
-   (gloss/ordered-map
-    :header :uint32-le
-    :state :uint32-le
-    :seqnum :uint32-le
-    :vision-flag :uint32-le)))
-
-
-(defn parse-navdata [navdata-bytes]
-  (log/debug "-- parse-navdata")
-  (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
-                         (.order ByteOrder/LITTLE_ENDIAN))
-        header (get-uint bb)
-        state (get-uint bb)
-        seqnum (get-uint bb)
-        vision-flag (= (get-uint bb) 1)
-        pstate (parse-nav-state state)
-        options (parse-options bb)]
-    (assoc options
-      :header header
-      :seq-num seqnum
-      :vision-flag vision-flag
-      :state pstate)))
-
-
 
 (defn options-bytes-seq [^ByteBuffer bb]
-  (if (zero? (.remaining bb))
-    '()
-    (let [option-header (get-ushort bb)
-          option-size (get-ushort bb)]
-      (if (pos? option-size)
-        (cons [(or (which-option-type option-header) option-header)
-               (slice-byte-buffer bb 0 option-size)]
-              (lazy-seq
-               (options-bytes-seq
-                (slice-byte-buffer
-                 bb option-size (+ 4 (- (.remaining bb) option-size))))))
-        (do
-          (log/info "Aborting 0-length option.")
-          '())))))
+  (let [option-header (get-ushort bb)
+        option-type (or (which-option-type option-header) option-header)
+        option-size (get-ushort bb)
+        option [option-type (slice-byte-buffer bb 0 option-size)]]
+    (if (= option-type :checksum)
+      (list option)
+      (cons option
+            (lazy-seq
+             (options-bytes-seq
+              (slice-byte-buffer
+               bb option-size (+ 4 (- (.remaining bb) option-size)))))))))
 
 
 (defn navdata-bytes-seq [navdata-bytes]
@@ -722,6 +714,28 @@
      (options-bytes-seq
       (slice-byte-buffer bb 16 (- (count navdata-bytes) 16)))]))
 
+
+(defn lazy-merge [a b]
+  (loop [items (seq a)
+         result b]
+    (if (seq items)
+      (let [[k v] (first items)]
+        (recur (rest items)
+               (assoc result k v)))
+      result)))
+
+
+(defn parse-navdata [navdata-bytes]
+  (let [[header-bytes options] (navdata-bytes-seq navdata-bytes)
+        header-info (gloss.io/decode navdata-codec header-bytes)
+        option-map (reduce (fn parse-opt-opt [opts [opt-type opt-bb]]
+                             (lazymap/lazy-assoc
+                              opts
+                              opt-type
+                              (parse-option2 opt-bb opt-type)))
+                           (lazymap/lazy-hash-map)
+                           options)]
+    (lazy-merge header-info option-map)))
 
 
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]

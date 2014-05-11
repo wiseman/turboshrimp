@@ -4,9 +4,9 @@
   :license {:name "MIT License"}
   :dependencies [[ch.qos.logback/logback-classic "1.1.1"]
                  [com.lemonodor/xio "0.2.2"]
-                 [de.kotka/lazymap "3.0.0"]
+                 [de.kotka/lazymap "3.1.1"]
                  [gloss "0.2.2"]
-                 [org.clojure/clojure "1.5.1"]
+                 [org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]
                                   [org.clojars.echo/test.mock "0.1.2"]]

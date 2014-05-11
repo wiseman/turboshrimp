@@ -8,7 +8,7 @@
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp :as ardrone])
   (:import (java.net InetAddress DatagramSocket)
-           (java.nio ByteOrder)))
+           (java.nio ByteBuffer ByteOrder)))
 
 ;; matrix 33 is 9 floats
 ;; vector 31 is 3 floats
@@ -581,3 +581,18 @@
             (is (= (:tz v) 0.0))))
 
         (test-watchdog-option navdata)))))
+
+
+(deftest navdata-bytes-seq-tests
+  (testing "navdata-bytes-seq on specimen"
+    (let [navdata-bytes (xio/binary-slurp (io/resource "navdata.bin"))
+          navdata-seq (navdata/navdata-bytes-seq navdata-bytes)]
+      (is (= (count navdata-seq) 2))
+      (let [navdata-bb (first navdata-seq)
+            options-bbs (second navdata-seq)]
+        (is (instance? ByteBuffer navdata-bb))
+        (is (= (.remaining navdata-bb) 16))
+        (is (= (count options-bbs) 29))
+        (is (every? #(= (count %) 2) options-bbs))
+        (is (every? #(or (keyword? %) (number? %)) (map first options-bbs)))
+        (is (every? #(instance? ByteBuffer %) (map second options-bbs)))))))
