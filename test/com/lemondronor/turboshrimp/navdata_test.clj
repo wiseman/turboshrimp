@@ -567,6 +567,12 @@
 
         (test-trackers-send-option navdata)
 
+        (testing "trims option"
+          (let [trims (:trims navdata)]
+            (is (= (:angular-rates trims) {:r 0.0}))
+            (is (= (:euler-angles trims) {:theta (float 3028.916)
+                                          :phi (float 1544.3184)}))))
+
         (testing "video-stream option"
           (let [video-stream (:video-stream navdata)]
             (is (= video-stream
@@ -577,12 +583,6 @@
                     :frame {:number 46105 :size 4597}
                     :quant 0
                     :tcp-queue-level 0}))))
-
-        (testing "trims option"
-          (let [trims (:trims navdata)]
-            (is (= (:angular-rates trims) {:r 0.0}))
-            (is (= (:euler-angles trims) {:theta (float 3028.916)
-                                          :phi (float 1544.3184)}))))
 
         (test-vision-option navdata)
 

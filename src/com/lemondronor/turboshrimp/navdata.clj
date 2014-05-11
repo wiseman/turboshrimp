@@ -635,6 +635,22 @@
 (defn parse-magneto-option [bb]
   (gloss.io/decode magneto-codec bb))
 
+
+(def windspeed-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :speed :float32-le  ;; m/s
+    :angle :float32-le  ;; deg
+    :compensation (gloss/ordered-map
+                   :theta :float32-le ;; rad
+                   :phi :float32-le)
+    :state-x (repeat 6 :float32-le)  ;; SU
+    :debug (repeat 3 :float32-le))))
+
+(defn parse-windspeed-option [bb]
+  (gloss.io/decode windspeed-codec bb))
+
+
 ;; Map from packet option ID to symbolic type.
 (def which-option-type
   {0 :demo
@@ -692,6 +708,7 @@
    :vision-perf parse-vision-perf-option
    :vision-raw parse-vision-raw-option
    :watchdog  parse-watchdog-option
+   :windspeed parse-windspeed-option
    :wifi parse-wifi-option})
 
 (defn parse-option [bb option-type]
