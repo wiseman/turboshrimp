@@ -555,6 +555,17 @@
 
         (test-trackers-send-option navdata)
 
+        (testing "video-stream option"
+          (let [video-stream (:video-stream navdata)]
+            (is (= video-stream
+                   {:at-cmd {:mean-gap 0 :quality 0 :sequence 0 :var-gap 0}
+                    :bitrate {:desired 0 :out 0}
+                    :data [0 0 0 0 0]
+                    :fifo-queue-level 0
+                    :frame {:number 46105 :size 4597}
+                    :quant 0
+                    :tcp-queue-level 0}))))
+
         (testing "trims option"
           (let [trims (:trims navdata)]
             (is (= (:angular-rates trims) {:r 0.0}))

@@ -446,6 +446,28 @@
   (gloss.io/decode trims-codec bb))
 
 
+(def video-stream-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :quant :ubyte
+    :frame (gloss/ordered-map
+            :size :uint32-le
+            :number :uint32-le)
+    :at-cmd (gloss/ordered-map
+             :sequence :uint32-le
+             :mean-gap :uint32-le
+             :var-gap :uint32-le
+             :quality :uint32-le)
+    :bitrate (gloss/ordered-map
+              :out :uint32-le
+              :desired :uint32-le)
+    :data (repeat 5 :int32-le)
+    :tcp-queue-level :uint32-le
+    :fifo-queue-level :uint32-le)))
+
+(defn parse-video-stream-option [bb]
+  (gloss.io/decode video-stream-codec bb))
+
 (def phys-measures-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -609,6 +631,7 @@
    16 :vision-detect
    17 :watchdog
    18 :adc-data-frame
+   19 :video-stream
    22 :magneto
    26 :wifi
    27 :gps
@@ -630,6 +653,7 @@
    :time parse-time-option
    :trackers-send parse-trackers-send-option
    :trims parse-trims-option
+   :video-stream parse-video-stream-option
    :vision parse-vision-option
    :vision-detect parse-vision-detect-option
    :vision-of parse-vision-of-option
