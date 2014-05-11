@@ -599,6 +599,19 @@
 (defn parse-gyros-offsets-option [bb]
   (gloss.io/decode gyros-offsets-codec bb))
 
+
+(def pressure-raw-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :up :int32-le
+    :ut :int16-le
+    :temperature :int32-le
+    :pressure :int32-le)))
+
+(defn parse-pressure-raw-option [bb]
+  (gloss.io/decode pressure-raw-codec bb))
+
+
 (def magneto-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -664,6 +677,7 @@
    :gyros-offsets parse-gyros-offsets-option
    :magneto parse-magneto-option
    :phys-measures parse-phys-measures-option
+   :pressure-raw parse-pressure-raw-option
    :pwm parse-pwm-option
    :raw-measures parse-raw-measures-option
    :rc-references parse-rc-references-option

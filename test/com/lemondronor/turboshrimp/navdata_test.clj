@@ -501,6 +501,14 @@
                  (:error magneto) {:mean (float -211.51361)
                                    :variance (float 79.36719)})))
 
+        (testing "pressure raw option"
+          (let [pressure-raw (:pressure-raw navdata)]
+            (is (= pressure-raw
+                   {:pressure 101586
+                    :temperature 435
+                    :ut 32556
+                    :up 39148}))))
+
         (testing "pwm option"
           (let [pwm (:pwm navdata)]
             (are [x y] (= x y)
