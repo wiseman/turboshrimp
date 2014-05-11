@@ -468,6 +468,18 @@
 (defn parse-video-stream-option [bb]
   (gloss.io/decode video-stream-codec bb))
 
+
+(def games-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :counters (gloss/ordered-map
+               :double-tap :uint32-le
+               :finish-line :uint32-le))))
+
+(defn parse-games-option [bb]
+  (gloss.io/decode games-codec bb))
+
+
 (def phys-measures-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -632,7 +644,12 @@
    17 :watchdog
    18 :adc-data-frame
    19 :video-stream
+   20 :games
+   21 :pressure-raw
    22 :magneto
+   23 :wind-speed
+   24 :kalman-pressure
+   25 :hd-video-stream
    26 :wifi
    27 :gps
    0xffff :checksum})
@@ -642,6 +659,7 @@
    :altitude parse-altitude-option
    :demo parse-demo-option
    :euler-angles parse-euler-angles-option
+   :games parse-games-option
    :gps parse-gps-option
    :gyros-offsets parse-gyros-offsets-option
    :magneto parse-magneto-option

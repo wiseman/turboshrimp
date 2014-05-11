@@ -467,6 +467,10 @@
             (is (= (:theta euler) 4866.0))
             (is (= (:phi euler) 2024.0))))
 
+        (testing "games option"
+          (let [games (:games navdata)]
+            (is (= games {:counters {:double-tap 0 :finish-line 0}}))))
+
         (test-gps-option navdata)
 
         (testing "gryos offsets option"
