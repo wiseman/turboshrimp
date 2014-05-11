@@ -603,7 +603,24 @@
             (is (= (:ty v) -0.7230937480926514))
             (is (= (:tz v) 0.0))))
 
-        (test-watchdog-option navdata)))))
+        (test-watchdog-option navdata)
+
+        (testing "windspeed option"
+          (let [wind-speed (:wind-speed navdata)]
+            (is (= wind-speed
+                   {:angle (float 0.0)
+                    :compensation {:phi (float 0.0) :theta (float 0.0)}
+                    :debug [(float 0.0)
+                            (float 0.0)
+                            (float 0.0)]
+                    :speed (float 0.0)
+                    :state-x [(float 0.058451913)
+                              (float -0.88172805)
+                              (float 0.0)
+                              (float 0.0)
+                              (float 305.59628)
+                              (float -236.80516)]}))))
+        ))))
 
 
 (deftest navdata-bytes-seq-tests
