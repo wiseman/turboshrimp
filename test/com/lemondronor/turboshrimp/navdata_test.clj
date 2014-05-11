@@ -68,7 +68,7 @@
                                     b-vision-detect-camera-source)))
 (def b-checksum-option-id [-1 -1])
 (def b-checksum-option-size [0x08 0x00])
-(def b-checksum-option-checksum [0x00 0x00 0x00 0x00])
+(def b-checksum-option-checksum [0x08 0x10 0x00 0x00])
 (def b-checksum-option
   (flatten (conj b-checksum-option-id b-checksum-option-size
                  b-checksum-option-checksum)))

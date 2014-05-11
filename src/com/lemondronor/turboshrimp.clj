@@ -152,7 +152,3 @@
     (command drone command-key w x y z)
     (Thread/sleep 30)
     (recur drone (- seconds 0.03) command-key [w x y z])))
-
-
-(defn get-nav-data [drone]
-  (:nav-data drone))

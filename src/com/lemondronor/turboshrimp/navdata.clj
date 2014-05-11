@@ -127,6 +127,15 @@
   (gloss.io/decode altitude-codec bb))
 
 
+(def checksum-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :value :uint32-le)))
+
+(defn parse-checksum-option [bb]
+  (gloss.io/decode checksum-codec bb))
+
+
 ;; Types of vision detections.
 (def detection-types
   {0 :horizontal-deprecated,
@@ -600,18 +609,6 @@
   (gloss.io/decode gyros-offsets-codec bb))
 
 
-(def pressure-raw-codec
-  (gloss/compile-frame
-   (gloss/ordered-map
-    :up :int32-le
-    :ut :int16-le
-    :temperature :int32-le
-    :pressure :int32-le)))
-
-(defn parse-pressure-raw-option [bb]
-  (gloss.io/decode pressure-raw-codec bb))
-
-
 (def magneto-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -634,6 +631,18 @@
 
 (defn parse-magneto-option [bb]
   (gloss.io/decode magneto-codec bb))
+
+
+(def pressure-raw-codec
+  (gloss/compile-frame
+   (gloss/ordered-map
+    :up :int32-le
+    :ut :int16-le
+    :temperature :int32-le
+    :pressure :int32-le)))
+
+(defn parse-pressure-raw-option [bb]
+  (gloss.io/decode pressure-raw-codec bb))
 
 
 (def wind-speed-codec
@@ -686,6 +695,7 @@
 (def option-parsers
   {:adc-data-frame parse-adc-data-frame-option
    :altitude parse-altitude-option
+   :checksum parse-checksum-option
    :demo parse-demo-option
    :euler-angles parse-euler-angles-option
    :games parse-games-option
@@ -711,11 +721,6 @@
    :wind-speed parse-wind-speed-option
    :wifi parse-wifi-option})
 
-(defn parse-option [bb option-type]
-  (log/debug "Parsing navdata option" option-type)
-  (if-let [parser (option-parsers option-type)]
-    (parser bb)
-    bb))
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
   (let [ba ^"[B" (Arrays/copyOfRange
@@ -726,7 +731,7 @@
     (.order bb ByteOrder/LITTLE_ENDIAN)
     bb))
 
-(defn parse-option2 [^ByteBuffer bb option-type]
+(defn parse-option [^ByteBuffer bb option-type]
   (log/debug "Parsing navdata option" option-type)
   (if-let [parser (option-parsers option-type)]
     (parser (slice-byte-buffer bb 4 (- (.remaining bb) 4)))
@@ -735,35 +740,26 @@
 (defn get-ushort [^ByteBuffer bb]
   (bit-and 0xFFFF (Integer. (int (.getShort bb)))))
 
-(defn get-uint [^ByteBuffer bb]
-  (bit-and 0xFFFFFFFF (Long. (long (.getInt bb)))))
+(defn ubyte [a]
+  (bit-and 0xFF (Integer. (int a))))
 
-(defn check-checksum [value bb]
-  (log/debug "CHECKSUM"))
+(defn checksum [bytes]
+  (loop [i (- (count bytes) 9)
+         sum 0]
+    (if (neg? i)
+      (bit-and 0xFFFFFFFF (Long. (long sum)))
+      (recur (dec i) (unchecked-add-int sum (ubyte (nth bytes i)))))))
 
-(defn parse-options [^ByteBuffer bb]
-  (loop [options (lazymap/lazy-hash-map)]
-    (let [option-header (get-ushort bb)
-          option-type (which-option-type option-header)
-          option-size (get-ushort bb)]
-      ;; From the developer guide: "The checksum is always the last
-      ;; option (data block) in the navdata packet."
-      (if (= option-type :checksum)
-        (do
-          (check-checksum (get-uint bb) bb)
-          options)
-        (let [old-pos (.position bb)
-              new-pos (+ old-pos (- option-size 4))]
-          (.position bb new-pos)
-          (if option-type
-            (recur
-             (lazymap/lazy-assoc
-              options
-              option-type
-              (parse-option
-               (slice-byte-buffer bb old-pos (- option-size 4))
-               option-type)))
-            (recur options)))))))
+(defn check-checksum [value navdata-bytes]
+  (let [actual (checksum navdata-bytes)]
+    (when (not (= actual value))
+      (throw (ex-info (str
+                       "Expected checksum "
+                       value
+                       " doesn't match actual checksum "
+                       actual)
+                      {:expected-checksum value
+                       :actual-checksum actual})))))
 
 
 (defn options-bytes-seq [^ByteBuffer bb]
@@ -805,10 +801,12 @@
                              (lazymap/lazy-assoc
                               opts
                               opt-type
-                              (parse-option2 opt-bb opt-type)))
+                              (parse-option opt-bb opt-type)))
                            (lazymap/lazy-hash-map)
-                           options)]
-    (lazy-merge header-info option-map)))
+                           options)
+        navdata-map (lazy-merge header-info option-map)]
+    (check-checksum (:value (:checksum navdata-map)) navdata-bytes)
+    navdata-map))
 
 
 (defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
