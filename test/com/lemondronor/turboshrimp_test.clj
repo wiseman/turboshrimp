@@ -8,8 +8,6 @@
 (deftest turboshrimp-tests
   (testing "default initialize gets default host and port"
     (let [drone (ar-drone/make-drone)]
-      (println "WOO")
-      (println (:host drone))
       (is (= (:hostname drone) ar-drone/default-hostname))
       (is (= (:at-port drone) ar-drone/default-at-port))
       (is (= @(:counter drone) 0))))
