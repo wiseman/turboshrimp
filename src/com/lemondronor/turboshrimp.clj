@@ -9,7 +9,7 @@
 (set! *warn-on-reflection* true)
 
 
-;; The default drone hostname/IP address.
+;; The default drone hostname.
 (def default-hostname "192.168.1.1")
 
 ;; The default port to use for AT control commands.
@@ -28,6 +28,7 @@
 (defrecord Drone
     [name
      host
+     hostname
      at-port
      counter
      at-socket
@@ -39,12 +40,9 @@
      nav-data])
 
 
-(defn drone-ip [drone]
-   (.getHostName ^InetAddress (:host drone)))
-
 (defmethod print-method Drone [d ^java.io.Writer w]
   (.write w (str "#<Drone "
-                 (drone-ip d) " "
+                 (:host d) " "
                  (if @(:connected? d)
                    "[connected]"
                    "[not connected]")
@@ -60,8 +58,8 @@
      {:name name
       :connected? (atom false)
       :event-handler event-handler
-      :host (InetAddress/getByName
-             (or hostname default-hostname))
+      :host (atom nil)
+      :hostname (or hostname default-hostname)
       :at-port (or at-port default-at-port)
       :counter (atom 0)
       :at-socket (DatagramSocket.)
@@ -70,8 +68,15 @@
       :navdata-socket (DatagramSocket.)
       :nav-data (atom {})})))
 
+
+(defn drone-host [drone]
+  (or @(:host drone)
+      (let [host (InetAddress/getByName (:hostname drone))]
+        (swap! (:host drone) (constantly host))
+        host)))
+
 (defn send-at-command [drone ^String data]
-  (let [^InetAddress host (:host drone)
+  (let [^InetAddress host (drone-host drone)
         ^Long at-port (:at-port drone)
         ^DatagramSocket at-socket (:at-socket drone)]
     (log/info "Sending command to" drone data)
@@ -114,7 +119,7 @@
   (log/info "Running navdata thread for" drone)
   (let [^DatagramSocket socket (:navdata-socket drone)
         ^DatagramPacket packet (navdata/new-datagram-packet
-                                (byte-array 2048) (:host drone) navdata-port)]
+                                (byte-array 2048) (drone-host drone) navdata-port)]
     (loop []
       (if @(:keep-streaming-navdata drone)
         (do
@@ -138,7 +143,7 @@
          (str "navdata thread for drone " (:name drone)))
     (.setDaemon true)
     (.start))
-  (send-datagram (:navdata-socket drone) (:host drone) navdata-port
+  (send-datagram (:navdata-socket drone) (drone-host drone) navdata-port
                  (byte-array (map byte [1 0 0 0]))))
 
 
