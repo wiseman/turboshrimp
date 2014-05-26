@@ -595,8 +595,7 @@
     :firmware-status :uint32-le)
    identity
    (fn [gps]
-     (assoc gps :last-frame-timestamp
-            (drone-time-to-seconds (:last-frame-timestamp gps))))))
+     (update-in gps [:last-frame-timestamp] drone-time-to-seconds))))
 
 (defn parse-gps-option [bb]
   (gloss.io/decode gps-codec bb))
@@ -752,7 +751,7 @@
 
 (defn check-checksum [value navdata-bytes]
   (let [actual (checksum navdata-bytes)]
-    (when (not (= actual value))
+    (when-not (= actual value)
       (throw (ex-info (str
                        "Expected checksum "
                        value

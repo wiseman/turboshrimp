@@ -25,6 +25,13 @@ following specific goals:
   magneto, vision, etc.
 
 
+## Testing
+
+```
+$ lein test
+```
+
+
 ## License
 
 Copyright © Carin Meier, Copyright © 2014 John Wiseman

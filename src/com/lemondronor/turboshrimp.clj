@@ -133,8 +133,7 @@
               (reset! (:keep-streaming-navdata drone) false)
               (raise-event drone :error e)))
           (recur))
-        (do
-          (log/info "Disconnecting thread for" drone))))))
+        (log/info "Disconnecting thread for" drone)))))
 
 (defn- start-navdata! [drone]
   (reset! (:keep-streaming-navdata drone) true)

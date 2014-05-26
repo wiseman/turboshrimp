@@ -10,6 +10,5 @@
                  [org.clojure/tools.logging "0.2.6"]]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]
                                   [org.clojars.echo/test.mock "0.1.2"]]
-                   :plugins [[lein-cloverage "1.0.2"]
-                             [lein-midje "3.1.3"]]}
+                   :plugins [[lein-cloverage "1.0.2"]]}
              :test {:jvm-opts ["-server"]}})
