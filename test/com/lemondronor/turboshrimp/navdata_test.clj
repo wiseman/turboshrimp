@@ -141,7 +141,7 @@
   (testing "which-option-type"
     (is (= (navdata/which-option-type 0) :demo))
     (is (= (navdata/which-option-type 16) :vision-detect))
-    (is (= (navdata/which-option-type 2342342)) nil))
+    (is (= (navdata/which-option-type 2342342) nil)))
 
   (testing "about parse-control-state"
     (testing "parse-control-state"
@@ -180,7 +180,7 @@
           (is (= (:type det) :vertical-deprecated))
           (is (= (:xc det) 1))
           (is (= (:yc det) 1))
-          (is (= (:width det)) 1)
+          (is (= (:width det) 1))
           (is (= (:height det) 1))
           (is (= (:dist det) 1))
           (is (= (:orientation-angle det) -1075.0))
