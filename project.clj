@@ -1,4 +1,4 @@
-(defproject com.lemondronor/turboshrimp "0.2.1"
+(defproject com.lemondronor/turboshrimp "0.2.2-SNAPSHOT"
   :description "Clojure API for the Parrot AR.Drone."
   :url "https://github.com/wiseman/turboshrimp"
   :license {:name "MIT License"}
