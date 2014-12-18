@@ -1,11 +1,16 @@
 (ns com.lemondronor.turboshrimp.navdata
   (:require [clojure.tools.logging :as log]
+            [com.lemondronor.turboshrimp.network :as network]
             gloss.io
             [gloss.core :as gloss]
             [lazymap.core :as lazymap])
-  (:import (java.net DatagramPacket DatagramSocket InetAddress)
+  (:import (java.io IOException)
+           (java.net DatagramPacket DatagramSocket InetAddress)
            (java.nio ByteBuffer ByteOrder)
-           (java.util Arrays)))
+           (java.util Arrays)
+           (java.util.concurrent ScheduledFuture ScheduledThreadPoolExecutor
+                                 ThreadFactory TimeUnit))
+  (:gen-class))
 
 (set! *warn-on-reflection* true)
 
@@ -742,23 +747,22 @@
 (defn ubyte [a]
   (bit-and 0xFF (Integer. (int a))))
 
-(defn checksum [bytes]
-  (loop [i (- (count bytes) 9)
+(defn checksum [navdata-bytes]
+  (loop [i 0
          sum 0]
-    (if (neg? i)
-      (bit-and 0xFFFFFFFF (Long. (long sum)))
-      (recur (dec i) (unchecked-add-int sum (ubyte (nth bytes i)))))))
+    (if (< i (- (count navdata-bytes) 8))
+      (recur (inc i) (unchecked-add-int sum (ubyte (nth navdata-bytes i))))
+      (bit-and 0xFFFFFFFF (Long. (long sum))))))
 
 (defn check-checksum [value navdata-bytes]
   (let [actual (checksum navdata-bytes)]
     (when-not (= actual value)
-      (throw (ex-info (str
-                       "Expected checksum "
-                       value
-                       " doesn't match actual checksum "
-                       actual)
-                      {:expected-checksum value
-                       :actual-checksum actual})))))
+      (throw
+       (ex-info
+        (str
+         "Expected checksum " value " doesn't match actual checksum " actual)
+        {:expected-checksum value
+         :actual-checksum actual})))))
 
 
 (defn options-bytes-seq [^ByteBuffer bb]
@@ -808,14 +812,126 @@
     navdata-map))
 
 
-(defn new-datagram-packet [^bytes data ^InetAddress host ^long port]
-  (DatagramPacket. data (count data) host port))
+(defn make-sched-thread-pool [^long num-threads]
+  (ScheduledThreadPoolExecutor.
+   num-threads
+   ^ThreadFactory (proxy [ThreadFactory] []
+                    (newThread [^Runnable runnable]
+                      (doto (Thread. runnable)
+                        (.setDaemon true))))))
 
-(defn send-navdata  [^DatagramSocket navdata-socket datagram-packet]
-  (.send navdata-socket datagram-packet))
 
-(defn receive-navdata  [^DatagramSocket navdata-socket datagram-packet]
-  (.receive navdata-socket datagram-packet))
+(defn periodic-task [period fn ^ScheduledThreadPoolExecutor pool]
+  (.scheduleAtFixedRate pool fn 0 period TimeUnit/MILLISECONDS))
 
-(defn get-navdata-bytes  [^DatagramPacket datagram-packet]
-  (.getData datagram-packet))
+(defn cancel-scheduled-task [^ScheduledFuture task]
+  (.cancel task false))
+
+
+(defrecord NavdataStream
+    [socket port hostname addr multicast? navdata-handler error-handler
+    seq-num reader writer thread-pool running?])
+
+
+(def default-navdata-timeout 1000)
+(def default-navdata-port 5554)
+
+
+(defn make-navdata-stream [& {:keys [hostname port navdata-handler error-handler
+                                     timeout multicast?]}]
+  (let [port (or port default-navdata-port)]
+    (map->NavdataStream
+     {:socket (doto (network/make-datagram-socket port)
+                (.setSoTimeout (or timeout default-navdata-timeout)))
+      :port port
+      :hostname hostname
+      :addr (network/get-addr hostname)
+      :multicast? multicast?
+      :navdata-handler navdata-handler
+      :error-handler error-handler
+      :seq-num (atom 0)
+      :reader (atom nil)
+      :writer (atom nil)
+      :thread-pool (atom nil)
+      :running? (atom false)})))
+
+
+(defn- request-navdata [stream]
+  (network/send-datagram
+   (:socket stream) (:addr stream) (:port stream)
+   ;; See https://projects.ardrone.org/boards/1/topics/show/4859
+   ;;
+   ;;   The message is tricky, there are two options: 1: Send (int) 1
+   ;;   and the drone will start sending multicast data to all in the
+   ;;   network, this might not be what you want.  2: Send this : char
+   ;;   buffer[] = {1,0,0,0,0,0,0,0,0,0,0,0,0,0};, length 14 bytes and
+   ;;   the drone will respond just to you.
+   (byte-array (map byte (if (:multicast? stream)
+                           [1]
+                           [1 0 0 0 0 0 0 0 0 0 0 0 0 0])))))
+
+
+(defn- read-navdata-loop [stream]
+  (let [socket (:socket stream)]
+    (try
+      (loop []
+        (when @(:running? stream)
+          (let [navdata (parse-navdata (network/receive-datagram socket))]
+            (when-let [navdata-handler (:navdata-handler stream)]
+              (let [seq-num (:seq-num navdata)
+                    prev-seq-num (:seq-num stream)]
+                ;; Ignore out of sequence packets.
+                (if (> seq-num @prev-seq-num)
+                  (do
+                    (reset! prev-seq-num seq-num)
+                    (navdata-handler navdata))
+                  (log/debug "Drone" (:hostname stream) ": Skipped packet with"
+                             "seqnum" seq-num ", expecting seqnum "
+                             @prev-seq-num)))))
+          (recur)))
+      (catch Exception e
+        (if-let [error-handler (:error-handler stream)]
+          (error-handler e)
+          (log/error
+           e "Drone" (:hostname stream) ": Error reading navdata"))))))
+
+
+(defn start-navdata-stream [stream]
+  (assert (not @(:running? stream)))
+  (assert (not @(:reader stream)))
+  (assert (not @(:writer stream)))
+  (assert (not @(:thread-pool stream)))
+  (reset! (:running? stream) true)
+  (let [thread-pool (make-sched-thread-pool 2)]
+    (reset! (:thread-pool stream) thread-pool)
+    ;; Docs say we just need to reuest navdata once; node-ar-drone
+    ;; does it every 100 ms and it's pretty well tested, so let's do
+    ;; the same.
+    (reset! (:writer stream)
+            (periodic-task
+             100
+             #(request-navdata stream)
+             thread-pool))
+    (reset! (:reader stream)
+            (.execute ^ScheduledThreadPoolExecutor thread-pool
+                      #(read-navdata-loop stream)))))
+
+
+(defn stop-navdata-stream [stream]
+  (reset! (:running? stream) false)
+  (cancel-scheduled-task @(:writer stream))
+  (.shutdown ^ScheduledThreadPoolExecutor @(:thread-pool stream)))
+
+
+(defn -main [& args]
+  (let [stream (make-navdata-stream
+                :hostname "192.168.1.1"
+                :port 5554
+                :navdata-handler (fn [navdata]
+                                   (println navdata)))]
+    (println "-------------------- Starting stream " stream)
+    (start-navdata-stream stream)
+    (Thread/sleep 10000)
+    (stop-navdata-stream stream)
+    (println "-------------------- Stopped stream " stream)
+    (Thread/sleep 5000)))
