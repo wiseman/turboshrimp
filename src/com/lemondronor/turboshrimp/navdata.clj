@@ -1,6 +1,7 @@
 (ns com.lemondronor.turboshrimp.navdata
   (:require [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp.network :as network]
+            [com.lemondronor.turboshrimp.util :as util]
             gloss.io
             [gloss.core :as gloss]
             [lazymap.core :as lazymap])
@@ -812,28 +813,12 @@
     navdata-map))
 
 
-(defn make-sched-thread-pool [^long num-threads]
-  (ScheduledThreadPoolExecutor.
-   num-threads
-   ^ThreadFactory (proxy [ThreadFactory] []
-                    (newThread [^Runnable runnable]
-                      (doto (Thread. runnable)
-                        (.setDaemon true))))))
-
-
-(defn periodic-task [period fn ^ScheduledThreadPoolExecutor pool]
-  (.scheduleAtFixedRate pool fn 0 period TimeUnit/MILLISECONDS))
-
-(defn cancel-scheduled-task [^ScheduledFuture task]
-  (.cancel task false))
-
-
 (defrecord NavdataStream
-    [socket port hostname addr multicast? navdata-handler error-handler
+    [socket port timeout hostname addr multicast? navdata-handler error-handler
     seq-num reader writer thread-pool running?])
 
 
-(def default-navdata-timeout 1000)
+(def default-navdata-timeout 3000)
 (def default-navdata-port 5554)
 
 
@@ -841,11 +826,11 @@
                                      timeout multicast?]}]
   (let [port (or port default-navdata-port)]
     (map->NavdataStream
-     {:socket (doto (network/make-datagram-socket port)
-                (.setSoTimeout (or timeout default-navdata-timeout)))
+     {:socket (atom nil)
       :port port
       :hostname hostname
       :addr (network/get-addr hostname)
+      :timeout (or timeout default-navdata-timeout)
       :multicast? multicast?
       :navdata-handler navdata-handler
       :error-handler error-handler
@@ -858,7 +843,7 @@
 
 (defn- request-navdata [stream]
   (network/send-datagram
-   (:socket stream) (:addr stream) (:port stream)
+   @(:socket stream) (:addr stream) (:port stream)
    ;; See https://projects.ardrone.org/boards/1/topics/show/4859
    ;;
    ;;   The message is tricky, there are two options: 1: Send (int) 1
@@ -872,7 +857,7 @@
 
 
 (defn- read-navdata-loop [stream]
-  (let [socket (:socket stream)]
+  (let [socket @(:socket stream)]
     (try
       (loop []
         (when @(:running? stream)
@@ -889,7 +874,7 @@
                              "seqnum" seq-num ", expecting seqnum "
                              @prev-seq-num)))))
           (recur)))
-      (catch Exception e
+      (catch Throwable e
         (if-let [error-handler (:error-handler stream)]
           (error-handler e)
           (log/error
@@ -902,25 +887,28 @@
   (assert (not @(:writer stream)))
   (assert (not @(:thread-pool stream)))
   (reset! (:running? stream) true)
-  (let [thread-pool (make-sched-thread-pool 2)]
+  (reset! (:socket stream)
+         (doto (network/make-datagram-socket (:port stream))
+           (.setSoTimeout (:timeout stream))))
+  (let [thread-pool (util/make-sched-thread-pool 2)]
     (reset! (:thread-pool stream) thread-pool)
     ;; Docs say we just need to reuest navdata once; node-ar-drone
     ;; does it every 100 ms and it's pretty well tested, so let's do
     ;; the same.
     (reset! (:writer stream)
-            (periodic-task
+            (util/periodic-task
              100
              #(request-navdata stream)
              thread-pool))
     (reset! (:reader stream)
-            (.execute ^ScheduledThreadPoolExecutor thread-pool
-                      #(read-navdata-loop stream)))))
+            (util/execute-in-pool thread-pool #(read-navdata-loop stream)))))
 
 
 (defn stop-navdata-stream [stream]
   (reset! (:running? stream) false)
-  (cancel-scheduled-task @(:writer stream))
-  (.shutdown ^ScheduledThreadPoolExecutor @(:thread-pool stream)))
+  (util/cancel-scheduled-task @(:writer stream))
+  (util/shutdown-pool @(:thread-pool stream))
+  (network/close-socket @(:socket stream)))
 
 
 (defn -main [& args]

@@ -1,5 +1,6 @@
 (ns com.lemondronor.turboshrimp.network
   (:require
+   [clojure.tools.logging :as log]
    [com.lemonodor.xio :as xio])
   (:import
    (java.io IOException)
@@ -16,6 +17,10 @@
 
 (defn make-datagram-socket ^DatagramSocket [port]
   (DatagramSocket. (int port)))
+
+
+(defn close-socket [^DatagramSocket socket]
+  (.close socket))
 
 
 (defn make-datagram-packet ^DatagramPacket [size]

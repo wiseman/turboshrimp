@@ -78,21 +78,9 @@
   (byte-array (map byte (flatten (conj b-header b-state b-seqnum b-vision
                                        b-demo-option b-vision-detect-option
                                        b-checksum-option)))))
-(def host (InetAddress/getByName "192.168.1.1"))
-(def port 5554)
-(def socket (DatagramSocket. ))
-(def packet (navdata/new-datagram-packet (byte-array 2048) host port))
 
 
 (deftest navdata-unit-tests
-  (testing "about new-datagram-packet"
-    (testing "getPort/getAddress/getData"
-      (let [data (byte-array (map byte [1 0 0 0]))
-            ndp (navdata/new-datagram-packet data host port)]
-        (is (= (.getPort ndp) port))
-        (is (= (.getAddress ndp) host))
-        (is (= (.getData ndp) data)))))
-
   (testing "about parse-nav-state"
     (testing "parse-nav-state"
       (let [state 260048080

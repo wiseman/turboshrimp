@@ -1,10 +1,11 @@
-(defproject com.lemondronor/turboshrimp "0.2.2-SNAPSHOT"
+(defproject com.lemondronor/turboshrimp "0.3.0-SNAPSHOT"
   :description "Clojure API for the Parrot AR.Drone."
   :url "https://github.com/wiseman/turboshrimp"
   :license {:name "MIT License"}
   :dependencies [[com.lemonodor/xio "0.2.2"]
                  [de.kotka/lazymap "3.1.1"]
                  [gloss "0.2.3"]
+                 [com.lemonodor/xio "0.2.2"]
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.1"]]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]

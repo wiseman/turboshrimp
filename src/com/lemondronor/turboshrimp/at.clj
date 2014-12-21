@@ -42,7 +42,7 @@
          (string/join "," [option, value])
          "\r")))
 
-(defn build-command [command-key counter & values]
+(defn build-command [counter command-key & values]
   (let [{:keys [command-class]} (command-key commands/commands)]
     (case command-class
       "AT*REF"  (build-ref-command command-key counter)
@@ -51,4 +51,14 @@
       "AT*COMWDG" (build-simple-command command-key counter)
       "AT*CONFIG" (build-config-command command-key counter)
       "AT*CTRL" (build-simple-command command-key counter)
-      :else     (throw (Exception. "Unsupported Drone Command")))))
+      (throw
+       (Exception. (str "Unknown command: " command-key))))))
+
+
+(defn commands-bytes [counter commands]
+  (->> (map (fn [seqnum command]
+              (apply build-command seqnum command))
+            (iterate inc counter)
+            commands)
+       (string/join)
+       (.getBytes)))
