@@ -1,6 +1,9 @@
 (ns com.lemondronor.turboshrimp.at
   (:require [clojure.string :as string])
-  (:import (java.nio ByteBuffer)))
+  (:import (java.nio ByteBuffer)
+           (clojure.lang PersistentVector)))
+
+(set! *warn-on-reflection* true)
 
 
 (defrecord AtCommand [type args blocks? options callback])
@@ -138,7 +141,7 @@
   (raw "CONFIG" [(stringize key) (stringize value)] true nil callback))
 
 
-(def led-animations
+(def ^PersistentVector led-animations
   [:blink-green-red
    :blink-green,
    :blink-red,
@@ -175,7 +178,7 @@
      (string/join "," [id (at-encoded-float hz) duration]))))
 
 
-(def animations
+(def ^PersistentVector animations
   [:phi-m-30-deg,
    :phi-30-deg,
    :theta-m-30-deg,
