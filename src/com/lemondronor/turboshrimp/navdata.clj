@@ -87,6 +87,10 @@
    state-masks))
 
 
+(defn decode [codec data]
+  (gloss.io/decode codec data false))
+
+
 (def navdata-codec
   (gloss/compile-frame
    (gloss/ordered-map
@@ -108,7 +112,7 @@
     :data-frame (repeat 32 :ubyte))))
 
 (defn parse-adc-data-frame-option [bb]
-  (gloss.io/decode adc-data-frame-codec bb))
+  (decode adc-data-frame-codec bb))
 
 
 (def altitude-codec
@@ -130,7 +134,7 @@
                 :state :uint32-le))))
 
 (defn parse-altitude-option [bb]
-  (gloss.io/decode altitude-codec bb))
+  (decode altitude-codec bb))
 
 
 (def checksum-codec
@@ -139,7 +143,7 @@
     :value :uint32-le)))
 
 (defn parse-checksum-option [bb]
-  (gloss.io/decode checksum-codec bb))
+  (decode checksum-codec bb))
 
 
 ;; Types of vision detections.
@@ -196,7 +200,7 @@
        :detect-camera-type (detection-types (:detect-camera-type demo))))))
 
 (defn parse-demo-option [bb]
-  (gloss.io/decode demo-codec bb))
+  (decode demo-codec bb))
 
 
 (def euler-angles-codec
@@ -206,7 +210,7 @@
     :phi :float32-le)))
 
 (defn parse-euler-angles-option [bb]
-  (gloss.io/decode euler-angles-codec bb))
+  (decode euler-angles-codec bb))
 
 
 (defn >>> [x n]
@@ -253,7 +257,7 @@
      (update-in v [:capture :time] drone-time-to-seconds))))
 
 (defn parse-vision-option [bb]
-  (gloss.io/decode vision-codec bb))
+  (decode vision-codec bb))
 
 
 (def camera-sources
@@ -295,7 +299,7 @@
                     (:num-detected v))))))))
 
 (defn parse-vision-detect-option [bb]
-  (gloss.io/decode vision-detect-codec bb))
+  (decode vision-detect-codec bb))
 
 
 (def vision-perf-codec
@@ -310,7 +314,7 @@
     :custom (repeat 20 :float32-le))))
 
 (defn parse-vision-perf-option [bb]
-  (gloss.io/decode vision-perf-codec bb))
+  (decode vision-perf-codec bb))
 
 
 (def vision-of-codec
@@ -320,7 +324,7 @@
     :dy (repeat 5 :float32-le))))
 
 (defn parse-vision-of-option [bb]
-  (gloss.io/decode vision-of-codec bb))
+  (decode vision-of-codec bb))
 
 
 (def vision-raw-codec
@@ -331,7 +335,7 @@
     :tz :float32-le)))
 
 (defn parse-vision-raw-option [bb]
-  (gloss.io/decode vision-raw-codec bb))
+  (decode vision-raw-codec bb))
 
 
 (def watchdog-codec
@@ -339,7 +343,7 @@
    :uint32-le))
 
 (defn parse-watchdog-option [bb]
-  (gloss.io/decode watchdog-codec bb))
+  (decode watchdog-codec bb))
 
 
 (def time-codec
@@ -349,7 +353,7 @@
    drone-time-to-seconds))
 
 (defn parse-time-option [bb]
-  (gloss.io/decode time-codec bb))
+  (decode time-codec bb))
 
 
 (def trackers-send-codec
@@ -361,7 +365,7 @@
                        :y :int32-le)))))
 
 (defn parse-trackers-send-option [bb]
-  (gloss.io/decode trackers-send-codec bb))
+  (decode trackers-send-codec bb))
 
 
 (def raw-measures-codec
@@ -402,7 +406,7 @@
      :gradient :int16-le)))
 
 (defn parse-raw-measures-option [bb]
-  (gloss.io/decode raw-measures-codec bb))
+  (decode raw-measures-codec bb))
 
 
 (def rc-references-codec
@@ -415,7 +419,7 @@
     :az :int32-le)))
 
 (defn parse-rc-references-option [bb]
-  (gloss.io/decode rc-references-codec bb))
+  (decode rc-references-codec bb))
 
 
 (def references-codec
@@ -445,7 +449,7 @@
          :seq :int32-le))))
 
 (defn parse-references-option [bb]
-  (gloss.io/decode references-codec bb))
+  (decode references-codec bb))
 
 
 (def trims-codec
@@ -458,7 +462,7 @@
                    :phi :float32-le))))
 
 (defn parse-trims-option [bb]
-  (gloss.io/decode trims-codec bb))
+  (decode trims-codec bb))
 
 
 (def video-stream-codec
@@ -481,7 +485,7 @@
     :fifo-queue-level :uint32-le)))
 
 (defn parse-video-stream-option [bb]
-  (gloss.io/decode video-stream-codec bb))
+  (decode video-stream-codec bb))
 
 
 (def games-codec
@@ -492,7 +496,7 @@
                :finish-line :uint32-le))))
 
 (defn parse-games-option [bb]
-  (gloss.io/decode games-codec bb))
+  (decode games-codec bb))
 
 
 (def phys-measures-codec
@@ -508,7 +512,7 @@
     :vref-idg :uint32-le)))
 
 (defn parse-phys-measures-option [bb]
-  (gloss.io/decode phys-measures-codec bb))
+  (decode phys-measures-codec bb))
 
 
 (def pwm-codec
@@ -533,8 +537,7 @@
     :altitude-der :float32-le)))
 
 (defn parse-pwm-option [bb]
-  (log/info "parsing pwm" bb)
-  (gloss.io/decode pwm-codec bb))
+  (decode pwm-codec bb))
 
 
 (def wifi-codec
@@ -546,7 +549,7 @@
 
 
 (defn parse-wifi-option [bb]
-  (gloss.io/decode wifi-codec bb))
+  (decode wifi-codec bb))
 
 ;; GPS structure from
 ;; https://github.com/paparazzi/paparazzi/blob/55e3d9d79119f81ed0b11a59487280becf13cf40/sw/airborne/boards/ardrone/at_com.h#L157
@@ -605,14 +608,14 @@
      (update-in gps [:last-frame-timestamp] drone-time-to-seconds))))
 
 (defn parse-gps-option [bb]
-  (gloss.io/decode gps-codec bb))
+  (decode gps-codec bb))
 
 
 (def gyros-offsets-codec
   vector3-codec)
 
 (defn parse-gyros-offsets-option [bb]
-  (gloss.io/decode gyros-offsets-codec bb))
+  (decode gyros-offsets-codec bb))
 
 
 (def magneto-codec
@@ -636,7 +639,7 @@
             :variance :float32-le))))
 
 (defn parse-magneto-option [bb]
-  (gloss.io/decode magneto-codec bb))
+  (decode magneto-codec bb))
 
 
 (def pressure-raw-codec
@@ -648,7 +651,7 @@
     :pressure :int32-le)))
 
 (defn parse-pressure-raw-option [bb]
-  (gloss.io/decode pressure-raw-codec bb))
+  (decode pressure-raw-codec bb))
 
 
 (def wind-speed-codec
@@ -663,7 +666,7 @@
     :debug (repeat 3 :float32-le))))
 
 (defn parse-wind-speed-option [bb]
-  (gloss.io/decode wind-speed-codec bb))
+  (decode wind-speed-codec bb))
 
 
 ;; Map from packet option ID to symbolic type.
@@ -728,15 +731,16 @@
    :wifi parse-wifi-option})
 
 
-(defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
-  (log/info "Slicing" bb offset len)
-  (let [ba ^"[B" (Arrays/copyOfRange
-                  ^"[B" (.array bb)
-                  offset
-                  (+ offset len))
-        bb (ByteBuffer/wrap ba)]
-    (.order bb ByteOrder/LITTLE_ENDIAN)
-    bb))
+(defn slice-byte-buffer [bb offset & [len]]
+  (let [^ByteBuffer bb bb
+        ^long offset offset
+        ^long len (or len (- (.limit bb) offset))]
+    (.position bb offset)
+    (let [slice (.slice bb)]
+      (.order slice ByteOrder/LITTLE_ENDIAN)
+      (.limit slice len)
+      slice)))
+
 
 (defn parse-option [^ByteBuffer bb option-type]
   (log/debug "Parsing navdata option" option-type)
@@ -773,23 +777,22 @@
         option-type (or (which-option-type option-header) option-header)
         option-size (get-ushort bb)
         option [option-type (slice-byte-buffer bb 0 option-size)]]
-    (log/info "---------- OPTION" option-type option-size)
+    (log/debug "---------- navdata option" option-type option-size)
     (if (= option-type :checksum)
       (list option)
       (cons option
             (lazy-seq
              (options-bytes-seq
               (slice-byte-buffer
-               bb option-size (+ 4 (- (.remaining bb) option-size)))))))))
+               bb option-size)))))))
 
 
 (defn navdata-bytes-seq [navdata-bytes]
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
                              (.order ByteOrder/LITTLE_ENDIAN))]
-    (log/info "----------------------------------------------------------------")
     [(slice-byte-buffer bb 0 16)
      (options-bytes-seq
-      (slice-byte-buffer bb 16 (- (count navdata-bytes) 16)))]))
+      (slice-byte-buffer bb 16))]))
 
 
 (defn lazy-merge [a b]
@@ -803,9 +806,8 @@
 
 
 (defn parse-navdata [navdata-bytes]
-  (log/info "WOO" navdata-bytes (count navdata-bytes))
   (let [[header-bytes options] (navdata-bytes-seq navdata-bytes)
-        header-info (gloss.io/decode navdata-codec header-bytes)
+        header-info (decode navdata-codec header-bytes)
         option-map (reduce (fn parse-opt-opt [opts [opt-type opt-bb]]
                              (lazymap/lazy-assoc
                               opts
