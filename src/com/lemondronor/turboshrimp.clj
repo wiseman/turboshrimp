@@ -1,7 +1,7 @@
 (ns com.lemondronor.turboshrimp
   "Control and telemetry library for the AR.Drone."
   (:require [clojure.tools.logging :as log]
-            [com.lemondronor.turboshrimp.at2 :as at]
+            [com.lemondronor.turboshrimp.at :as at]
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util])
