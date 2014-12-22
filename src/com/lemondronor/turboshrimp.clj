@@ -5,8 +5,6 @@
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util])
-  (:import (java.io IOException)
-           (java.net DatagramPacket DatagramSocket InetAddress))
   (:gen-class))
 
 (set! *warn-on-reflection* true)

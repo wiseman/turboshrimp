@@ -1,7 +1,6 @@
 (ns com.lemondronor.turboshrimp.at-test
-  (:require
-   [clojure.test :refer :all]
-   [com.lemondronor.turboshrimp.at :as at]))
+  (:require [clojure.test :refer :all]
+            [com.lemondronor.turboshrimp.at :as at]))
 
 
 (deftest at-tests

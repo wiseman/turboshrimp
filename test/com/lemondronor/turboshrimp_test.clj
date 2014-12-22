@@ -1,5 +1,4 @@
 (ns com.lemondronor.turboshrimp-test
-  (:import (java.net DatagramPacket InetAddress))
   (:require [clojure.test :refer :all]
             [com.lemondronor.turboshrimp :as ar-drone]
             [echo.test.mock :as mock]))

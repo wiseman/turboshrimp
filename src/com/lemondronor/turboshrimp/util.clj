@@ -1,6 +1,6 @@
 (ns com.lemondronor.turboshrimp.util
-  (:require [clojure.tools.logging :as log])
-  (:import (java.util.concurrent ScheduledFuture ScheduledThreadPoolExecutor
+  (:import (java.util.concurrent ScheduledFuture
+                                 ScheduledThreadPoolExecutor
                                  ThreadFactory TimeUnit)))
 
 (set! *warn-on-reflection* true)

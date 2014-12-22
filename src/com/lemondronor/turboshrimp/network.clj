@@ -1,11 +1,7 @@
 (ns com.lemondronor.turboshrimp.network
-  (:require
-   [clojure.tools.logging :as log]
-   [com.lemonodor.xio :as xio])
-  (:import
-   (java.io IOException)
-   (java.net DatagramPacket DatagramSocket InetAddress SocketTimeoutException)
-   (java.util Arrays))
+  (:require [clojure.tools.logging :as log])
+  (:import (java.net DatagramPacket DatagramSocket InetAddress)
+           (java.util Arrays))
   (:gen-class))
 
 (set! *warn-on-reflection* true)

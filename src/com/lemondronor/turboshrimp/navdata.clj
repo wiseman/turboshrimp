@@ -2,15 +2,11 @@
   (:require [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util]
-            gloss.io
             [gloss.core :as gloss]
+            gloss.io
             [lazymap.core :as lazymap])
-  (:import (java.io IOException)
-           (java.net DatagramPacket DatagramSocket InetAddress)
-           (java.nio ByteBuffer ByteOrder)
-           (java.util Arrays)
-           (java.util.concurrent ScheduledFuture ScheduledThreadPoolExecutor
-                                 ThreadFactory TimeUnit))
+  (:import (java.net DatagramSocket)
+           (java.nio ByteBuffer ByteOrder))
   (:gen-class))
 
 (set! *warn-on-reflection* true)

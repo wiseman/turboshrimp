@@ -1,14 +1,9 @@
 (ns com.lemondronor.turboshrimp.navdata-test
   (:require [clojure.java.io :as io]
-            [clojure.pprint :as pprint]
             [clojure.test :refer :all]
-            [com.lemonodor.xio :as xio]
-            [criterium.core :as criterium]
-            [gloss.io]
             [com.lemondronor.turboshrimp.navdata :as navdata]
-            [com.lemondronor.turboshrimp :as ardrone])
-  (:import (java.net InetAddress DatagramSocket)
-           (java.nio ByteBuffer ByteOrder)))
+            [com.lemonodor.xio :as xio])
+  (:import (java.nio ByteBuffer ByteOrder)))
 
 ;; matrix 33 is 9 floats
 ;; vector 31 is 3 floats
