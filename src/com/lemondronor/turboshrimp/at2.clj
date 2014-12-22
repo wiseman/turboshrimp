@@ -5,8 +5,6 @@
 
 (defrecord AtCommand [type args blocks? options callback])
 
-(defn make-at-command [type args blocks? options callback]
-  (AtCommand. type args blocks? options callback))
 
 (defn serialize [seq-num at-command]
   (assert (instance? AtCommand at-command))
@@ -30,28 +28,19 @@
           assoc
           ~name
           {:name ~name
-           :args '~args
            :builder
            (fn ~args
              ~@body)}))
 
 
 (defn commands-bytes [counter commands]
-  (->> (map (fn [seqnum command]
-              (serialize seqnum command))
-            (iterate inc counter)
-            commands)
-       (string/join)
-       (.getBytes)))
-
-
-(defn check-arity [command args]
-  (when (not (= (count (:args command)) (count args)))
-    (throw (ex-info (str "Wrong number of args ("
-                         (count args)
-                         ") passed to command " (:name command)
-                         "; expected " (count (:args command)))
-                    {}))))
+  (let [b (->> (map (fn [seqnum command]
+                      (serialize seqnum command))
+                    (iterate inc counter)
+                    commands)
+               (string/join)
+               (.getBytes))]
+    b))
 
 
 (defn build-command [command & args]
@@ -71,8 +60,8 @@
                      :args args}))))
 
 
-(defn raw [type args blocks? options callback]
-  (make-at-command type args blocks? options callback))
+(defn raw [type args & [blocks? options callback]]
+  (AtCommand. type args blocks? options callback))
 
 
 (defcommand :ctrl [control-mode other-mode]
@@ -97,8 +86,10 @@
 (defcommand :ref [options]
   (raw "REF" [(flags-value ref-flags options)] false nil nil))
 
+
 (def pcmd-flags
   {:progressive (bit-shift-left 1 0)})
+
 
 (def pcmd-aliases
   {:left              {:index 1 :invert true}
@@ -109,6 +100,7 @@
    :down              {:index 3 :invert true}
    :clockwise         {:index 4 :invert false}
    :counter-clockwise {:index 4 :invert true}})
+
 
 (defcommand :pcmd [options]
   (let [prog-value (if (empty? options)
@@ -138,6 +130,14 @@
   (raw "FTRIM" [] false nil nil))
 
 
+(defn stringize [v]
+  (str "\"" v "\""))
+
+
+(defcommand :config [key value & [callback]]
+  (raw "CONFIG" [(stringize key) (stringize value)] true nil callback))
+
+
 (def led-animations
   [:blink-green-red
    :blink-green,
@@ -162,15 +162,17 @@
    :blink-standard])
 
 
-(defcommand :animate-leds [name hz duration]
-  (let [id (.indexOf led-animations name)]
+(defcommand :animate-leds [& [name hz duration]]
+  (let [name (or name :red-snake)
+        id (.indexOf led-animations name)
+        hz (or hz 2)
+        duration (or duration 3)]
     (when (< id 0)
       (throw (ex-info (str "Unknown LED animation: " name) {})))
     (build-command
      :config
      "leds:leds_anim"
-     (string/join "," [id (at-encoded-float hz) duration])
-     nil)))
+     (string/join "," [id (at-encoded-float hz) duration]))))
 
 
 (def animations
@@ -203,12 +205,8 @@
     (build-command
      :config
      "control:flight_anim"
-     (string/join "," [id duration])
-     nil)))
+     (string/join "," [id duration]))))
 
 
-(defn stringize [v]
-  (str "\"" v "\""))
-
-(defcommand :config [key value callback]
-  (raw "CONFIG" [(stringize key) (stringize value)] true nil callback))
+(defcommand :navdata-demo []
+  (build-command :config "general:navdata_demo" "FALSE"))

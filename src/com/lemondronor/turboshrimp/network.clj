@@ -37,6 +37,8 @@
 (defn receive-datagram
   ([^DatagramSocket socket ^DatagramPacket packet]
      (.receive socket packet)
-     (Arrays/copyOf (.getData packet) (.getLength packet)))
+     (let [num-bytes (.getLength packet)]
+       (log/info "Received" num-bytes "bytes")
+       (Arrays/copyOf (.getData packet) num-bytes)))
   ([^DatagramSocket socket]
-     (receive-datagram socket (make-datagram-packet 2048))))
+     (receive-datagram socket (make-datagram-packet 8192))))

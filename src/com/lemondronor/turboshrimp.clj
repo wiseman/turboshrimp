@@ -69,11 +69,6 @@
     (raise-event drone :error exception)))
 
 
-(defrecord CommandStream
-    [socket port hostname addr error-handler command-queue writer
-     thread-pool running?])
-
-
 (defn queue-command [drone command]
   (dosync
    (alter (:command-queue drone) conj command)))
@@ -114,7 +109,7 @@
                 :command-queue (ref '())
                 :ref (atom {})
                 :pcmd (atom {})
-                :seq-num (ref 0)
+                :seq-num (ref 1)
                 :connected? (atom false)
                 :event-handler event-handler
                 :navdata-stream (atom nil)
@@ -137,8 +132,35 @@
 (defn takeoff [drone]
   (swap! (:ref drone) assoc :fly true))
 
+
 (defn land [drone]
   (swap! (:ref drone) assoc :fly false))
+
+
+(defn stop [drone]
+  (reset! (:pcmd drone) {}))
+
+
+(defn- assoc-exclusive [map k1 k2 v]
+  (-> map
+      (assoc k1 v)
+      (dissoc k2)))
+
+
+(defmacro defpcmds [[a b]]
+  (let [a-key (keyword a)
+        b-key (keyword b)]
+    `(do
+       (defn ~a [~'drone ~'speed]
+         (swap! (:pcmd ~'drone) assoc-exclusive ~a-key ~b-key ~'speed))
+       (defn ~b [~'drone ~'speed]
+         (swap! (:pcmd ~'drone) assoc-exclusive ~b-key ~a-key ~'speed)))))
+
+
+(defpcmds [up down])
+(defpcmds [left right])
+(defpcmds [front back])
+(defpcmds [clockwise counter-clockwise])
 
 
 (defn connect! [drone]
@@ -157,7 +179,10 @@
                  (catch Throwable e
                    (log/error e "Error sending commands"))))
              thread-pool)))
+  ;; Set trim (assumes we're landed).
   (command drone :flat-trim)
+  ;; Request basic navdata by default.
+  (command drone :navdata-demo)
   drone)
 
 
@@ -174,15 +199,30 @@
     (recur drone (- seconds 0.03) command-key [w x y z])))
 
 
+(defn do-led-animation [drone name hz duration]
+  (log/info name)
+  (command drone :animate-leds name hz duration)
+  (Thread/sleep 6000))
+
+
 (defn -main [& args]
+  (log/info "HELLO")
   (let [drone (make-drone
                :event-handler (fn [& args]
-                                (println args)))]
+                                (println args)
+                                ))]
     (connect! drone)
-    (Thread/sleep 100)
-    (log/info "WOO taking off")
-    (takeoff drone)
-    (Thread/sleep 7000)
-    (log/info "WOO land")
+    (log/info "Connected")
+    (command drone :ref {:emergency true})
+    (Thread/sleep 1000)
+    (command drone :flat-trim)
+    (Thread/sleep 1000)
+    ;;(do-led-animation drone :blink-green-red 0.5 4000)
+    ;;(do-led-animation drone :fire 0.5 4000)
+    ;;(do-led-animation drone :red-snake 3 4000)
+    ;;(do-led-animation drone :blank 2 0)
+    ;;(takeoff drone)
+    ;;(clockwise drone 1.0)
+    (Thread/sleep 5000)
     (land drone)
     (Thread/sleep 500)))

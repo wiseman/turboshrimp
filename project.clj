@@ -7,7 +7,8 @@
                  [gloss "0.2.3"]
                  [com.lemonodor/xio "0.2.2"]
                  [org.clojure/clojure "1.6.0"]
-                 [org.clojure/tools.logging "0.3.1"]]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [ch.qos.logback/logback-classic "1.1.1"]]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]
                                   [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]]}

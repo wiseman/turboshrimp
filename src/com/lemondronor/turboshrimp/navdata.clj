@@ -533,6 +533,7 @@
     :altitude-der :float32-le)))
 
 (defn parse-pwm-option [bb]
+  (log/info "parsing pwm" bb)
   (gloss.io/decode pwm-codec bb))
 
 
@@ -728,6 +729,7 @@
 
 
 (defn slice-byte-buffer [^ByteBuffer bb ^long offset ^long len]
+  (log/info "Slicing" bb offset len)
   (let [ba ^"[B" (Arrays/copyOfRange
                   ^"[B" (.array bb)
                   offset
@@ -771,6 +773,7 @@
         option-type (or (which-option-type option-header) option-header)
         option-size (get-ushort bb)
         option [option-type (slice-byte-buffer bb 0 option-size)]]
+    (log/info "---------- OPTION" option-type option-size)
     (if (= option-type :checksum)
       (list option)
       (cons option
@@ -783,6 +786,7 @@
 (defn navdata-bytes-seq [navdata-bytes]
   (let [^ByteBuffer bb (doto ^ByteBuffer (gloss.io/to-byte-buffer navdata-bytes)
                              (.order ByteOrder/LITTLE_ENDIAN))]
+    (log/info "----------------------------------------------------------------")
     [(slice-byte-buffer bb 0 16)
      (options-bytes-seq
       (slice-byte-buffer bb 16 (- (count navdata-bytes) 16)))]))
@@ -799,6 +803,7 @@
 
 
 (defn parse-navdata [navdata-bytes]
+  (log/info "WOO" navdata-bytes (count navdata-bytes))
   (let [[header-bytes options] (navdata-bytes-seq navdata-bytes)
         header-info (gloss.io/decode navdata-codec header-bytes)
         option-map (reduce (fn parse-opt-opt [opts [opt-type opt-bb]]
@@ -875,10 +880,9 @@
                              @prev-seq-num)))))
           (recur)))
       (catch Throwable e
+        (log/error e "Drone" (:hostname stream) ": Error reading navdata")
         (if-let [error-handler (:error-handler stream)]
-          (error-handler e)
-          (log/error
-           e "Drone" (:hostname stream) ": Error reading navdata"))))))
+          (error-handler e))))))
 
 
 (defn start-navdata-stream [stream]

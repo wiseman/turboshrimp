@@ -9,14 +9,16 @@
     (is (= 1056964608 (at2/at-encoded-float 0.5)))
     (is (= -1085485875 (at2/at-encoded-float -0.8)))
     (is (= 0 (at2/at-encoded-float 0))))
-
   (testing "ctrl"
     (is (= (at2/map->AtCommand
             {:type "CTRL"
              :args [5 0]
              :blocks? false
              :options nil
-             :callback nil}))))
+             :callback nil})
+           (at2/build-command :ctrl 5 0)))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Wrong number of arguments"
+                          (at2/build-command :ctrl))))
   (testing "ref"
     (is (= (at2/map->AtCommand
             {:type "REF",
@@ -66,6 +68,12 @@
            (at2/serialize
             7 (at2/build-command :flat-trim)))))
   (testing "animate-leds"
+    (is (= "AT*CONFIG=8,\"leds:leds_anim\",\"9,1073741824,3\"\r"
+           (at2/serialize
+            8 (at2/build-command :animate-leds))))
+    (is (= "AT*CONFIG=8,\"leds:leds_anim\",\"1,1073741824,3\"\r"
+           (at2/serialize
+            8 (at2/build-command :animate-leds :blink-green))))
     (is (= "AT*CONFIG=8,\"leds:leds_anim\",\"1,1077936128,3\"\r"
            (at2/serialize
             8 (at2/build-command :animate-leds :blink-green 3 3)))))
@@ -79,4 +87,10 @@
              :args ["\"foo\"" "\"bar\""]
              :blocks? true
              :callback nil})
-           (at2/build-command :config "foo" "bar" nil)))))
+           (at2/build-command :config "foo" "bar")))
+    (is (= (at2/map->AtCommand
+            {:type "CONFIG"
+             :args ["\"foo\"" "\"bar\""]
+             :blocks? true
+             :callback :bogus-callback})
+           (at2/build-command :config "foo" "bar" :bogus-callback)))))
