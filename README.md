@@ -51,6 +51,10 @@ following specific goals:
       * [xuggler](http://www.xuggle.com/xuggler) has native code and
          decodes at about 50 fps.  Its output appears to be perfect.
 
+  * It runs on Android.  I don't check every commit, but I do
+    periodically test on Android.  This code has flown a drone on an
+    Android phone.
+
 
 ## Testing
 
