@@ -4,7 +4,8 @@
             [com.lemondronor.turboshrimp.at :as at]
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
-            [com.lemondronor.turboshrimp.util :as util])
+            [com.lemondronor.turboshrimp.util :as util]
+            [com.lemondronor.turboshrimp.video :as video])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -207,18 +208,20 @@
   (log/info "HELLO")
   (let [drone (make-drone
                :event-handler (fn [& args]
-                                (println args)
+                                ;;(println args)
                                 ))]
     (connect! drone)
     (log/info "Connected")
+    (video/init-video "192.168.1.1")
+    (video/start-video "192.168.1.1")
     (command drone :ref {:emergency true})
     (Thread/sleep 1000)
     (command drone :flat-trim)
-    (Thread/sleep 1000)
-    (do-led-animation drone :blink-green-red 3 4000)
-    (do-led-animation drone :fire 0.5 4000)
-    (do-led-animation drone :red-snake 3 4000)
-    (do-led-animation drone :blank 2 0)
+    (Thread/sleep 100000)
+    ;;(do-led-animation drone :blink-green-red 3 4000)
+    ;;(do-led-animation drone :fire 0.5 4000)
+    ;;(do-led-animation drone :red-snake 3 4000)
+    ;;(do-led-animation drone :blank 2 0)
     ;;(takeoff drone)
     ;;(clockwise drone 1.0)
     (Thread/sleep 5000)

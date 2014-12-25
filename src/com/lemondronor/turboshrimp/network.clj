@@ -1,6 +1,6 @@
 (ns com.lemondronor.turboshrimp.network
   (:require [clojure.tools.logging :as log])
-  (:import (java.net DatagramPacket DatagramSocket InetAddress)
+  (:import (java.net DatagramPacket DatagramSocket InetAddress Socket)
            (java.util Arrays))
   (:gen-class))
 
@@ -15,7 +15,11 @@
   (DatagramSocket. (int port)))
 
 
-(defn close-socket [^DatagramSocket socket]
+(defn make-tcp-socket [host port]
+  (Socket. host port))
+
+
+(defn close-socket [^Socket socket]
   (.close socket))
 
 
@@ -34,7 +38,6 @@
   ([^DatagramSocket socket ^DatagramPacket packet]
      (.receive socket packet)
      (let [num-bytes (.getLength packet)]
-       (log/info "Received" num-bytes "bytes")
        (Arrays/copyOf (.getData packet) num-bytes)))
   ([^DatagramSocket socket]
      (receive-datagram socket (make-datagram-packet 8192))))
