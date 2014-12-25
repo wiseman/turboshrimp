@@ -11,6 +11,7 @@
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.1"]
                  [xuggle/xuggle-xuggler "5.2"]]
+  :java-source-paths ["src/java"]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]
                                   [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]]}

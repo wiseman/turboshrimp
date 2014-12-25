@@ -14,8 +14,8 @@ import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 import com.xuggle.xuggler.Utils;
 
-import de.yadrone.base.video.ImageListener;
-import de.yadrone.base.video.VideoDecoder;
+import com.lemondronor.turboshrimp.xuggler.ImageListener;
+import com.lemondronor.turboshrimp.xuggler.VideoDecoder;
 
 public class XugglerDecoder implements VideoDecoder
 {
@@ -38,7 +38,6 @@ public class XugglerDecoder implements VideoDecoder
 
         // query how many streams the call to open found
         int numStreams = container.getNumStreams();
-
         // and iterate through the streams to find the first video stream
         int videoStreamId = -1;
         IStreamCoder videoCoder = null;
@@ -85,9 +84,7 @@ public class XugglerDecoder implements VideoDecoder
         IPacket packet = IPacket.make();
         long firstTimestampInStream = Global.NO_PTS;
         long systemClockStartTime = 0;
-        // System.out.println("XugglerDecoder: Waiting to read first packet");
         while (!doStop && container.readNextPacket(packet) >= 0) {
-            //			System.out.println("read next packet");
             /*
              * Now we have a packet, let's see if it belongs to our
              * video stream
@@ -146,64 +143,10 @@ public class XugglerDecoder implements VideoDecoder
                                 throw new RuntimeException(
                                     "could not decode video as BGR 24 bit data");
 
-                            /**
-                             * We could just display the images as
-                             * quickly as we decode them, but it turns
-                             * out we can decode a lot faster than you
-                             * think.
-                             *
-                             * So instead, the following code does a
-                             * poor-man's version of trying to match
-                             * up the frame-rate requested for each
-                             * IVideoPicture with the system clock
-                             * time on your computer.
-                             *
-                             * Remember that all Xuggler IAudioSamples
-                             * and IVideoPicture objects always give
-                             * timestamps in Microseconds, relative to
-                             * the first decoded item. If instead you
-                             * used the packet timestamps, they can be
-                             * in different units depending on your
-                             * IContainer, and IStream and things can
-                             * get hairy quickly.
-                             */
-                            if (firstTimestampInStream == Global.NO_PTS) {
-                                // This is our first time through
-                                firstTimestampInStream = picture.getTimeStamp();
-                                // get the starting clock time so we
-                                // can hold up frames until the right
-                                // time.
-                                systemClockStartTime = System.currentTimeMillis();
-                            } else {
-                                long systemClockCurrentTime = System.currentTimeMillis();
-                                long millisecondsClockTimeSinceStartofVideo = systemClockCurrentTime - systemClockStartTime;
-
-                                // compute how long for this frame
-                                // since the first frame in the
-                                // stream.  remember that
-                                // IVideoPicture and IAudioSamples
-                                // timestamps are always in
-                                // MICROSECONDS, so we divide by 1000
-                                // to get milliseconds.
-                                long millisecondsStreamTimeSinceStartOfVideo = (picture.getTimeStamp() - firstTimestampInStream) / 1000;
-                                final long millisecondsTolerance = 50; // and we give ourselfs 50 ms of tolerance
-                                final long millisecondsToSleep = (millisecondsStreamTimeSinceStartOfVideo - (millisecondsClockTimeSinceStartofVideo + millisecondsTolerance));
-                                if (millisecondsToSleep > 0) {
-                                    //									try
-                                    //									{
-                                    //										Thread.sleep(millisecondsToSleep);
-                                    //									}
-                                    //									catch (InterruptedException e)
-                                    //									{
-                                    //										// we might get this when the user closes the dialog box, so just return from the method.
-                                    //										return;
-                                    //									}
-                                }
-                            }
-
                             // And finally, convert the BGR24 to an
                             // Java buffered image
-                            //							System.out.println("3 create BufferedImage");
+                            // System.out.println("3 create
+                            // BufferedImage");
                             BufferedImage javaImage = Utils.videoPictureToImage(newPic);
 
                             // and display it on the Java Swing window
@@ -213,6 +156,8 @@ public class XugglerDecoder implements VideoDecoder
                     } // end of while
                 }
                 catch (Exception exc) {
+                    System.out.println("OUCH");
+                    exc.printStackTrace();
                     // hopefully nothing really bad (probably failed to decode single video frame)
                     //					System.err.println("XugglerDecoder: Exception while decoding video: " + exc.getMessage());
                     //					exc.printStackTrace();

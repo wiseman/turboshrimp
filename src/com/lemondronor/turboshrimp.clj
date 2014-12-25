@@ -4,8 +4,7 @@
             [com.lemondronor.turboshrimp.at :as at]
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
-            [com.lemondronor.turboshrimp.util :as util]
-            [com.lemondronor.turboshrimp.video :as video])
+            [com.lemondronor.turboshrimp.util :as util])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -212,8 +211,8 @@
                                 ))]
     (connect! drone)
     (log/info "Connected")
-    (video/init-video "192.168.1.1")
-    (video/start-video "192.168.1.1")
+    ;;(video/init-video "192.168.1.1")
+    ;;(video/start-video "192.168.1.1")
     (command drone :ref {:emergency true})
     (Thread/sleep 1000)
     (command drone :flat-trim)
