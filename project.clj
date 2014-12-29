@@ -4,7 +4,8 @@
   :license {:name "MIT License"}
   :repositories [["xuggle" {:url "http://xuggle.googlecode.com/svn/trunk/repo/share/java/"
                             :checksum :ignore}]]
-  :dependencies [[com.lemonodor/xio "0.2.2"]
+  :dependencies [[com.lemondronor/turboshrimp-h264j "0.1.0-SNAPSHOT16"]
+                 [com.lemonodor/xio "0.2.2"]
                  [com.twilight/h264 "0.0.1"]
                  [de.kotka/lazymap "3.1.1"]
                  [gloss "0.2.4"]

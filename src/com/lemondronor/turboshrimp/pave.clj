@@ -113,24 +113,30 @@
              (= (:slice-index frame) 0)))))
 
 
-(defrecord LatencyReductionQueue [queue num-frames-dropped lock not-empty])
+(defrecord FrameQueue [queue num-frames-dropped lock not-empty reduce-latency?])
 
 
-(defn make-latency-reduction-queue
-  "A latency reduction queue implements the recommended latency
-  reduction technique for AR.Drone video, which is to drop any
-  unprocessed P-frames whenever an I-frame is received."
-  []
+(defn make-frame-queue
+  "A frame queue that implements latency reduction.
+
+  This queue implements the recommended latency reduction technique
+  for AR.Drone video, which is to drop any unprocessed P-frames
+  whenever an I-frame is received.
+
+  To turn off latency reduction"
+  [& {:keys [reduce-latency?]
+      :or {reduce-latency? true}}]
   (let [^Lock lock (ReentrantLock.)]
-    (map->LatencyReductionQueue
+    (map->FrameQueue
      {:queue (atom '())
       :num-dropped-frames (atom 0)
       :lock lock
-      :not-empty (.newCondition lock)})))
+      :not-empty (.newCondition lock)
+      :reduce-latency? (atom reduce-latency?)})))
 
 
 (defn pull-frame
-  "Pulls a video frame from a latency reduction queue.
+  "Pulls a video frame from a frame queue.
 
   Blocks until a frame is available.  An optional timeout (in
   milliseconds) can be specified, in which case the call will return
@@ -158,7 +164,7 @@
 
 
 (defn queue-frame
-  "Pushes a video frame into a latency reduction queue."
+  "Pushes a video frame into a frame queue."
   [lrq frame]
   (let [q (:queue lrq)
         ^Lock lock (:lock lrq)
@@ -166,7 +172,8 @@
     (.lock lock)
     (try
       (do
-        (if (i-frame? frame)
+        (if (and @(:reduce-latency? lrq)
+                 (i-frame? frame))
           (let [num-skipped (count @q)]
             (when (> num-skipped 0)
               (log/debug "Skipped" num-skipped "frames")

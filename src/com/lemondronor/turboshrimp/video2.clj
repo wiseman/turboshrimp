@@ -1,7 +1,7 @@
 (ns com.lemondronor.turboshrimp.video2
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [com.lemondronor.turboshrimp.decode :as decode]
+            [com.lemondronor.turboshrimp.h264j :as decode]
             [com.lemondronor.turboshrimp.pave :as pave]
             [com.lemonodor.xio :as xio])
   (:import (java.awt Graphics)
@@ -10,9 +10,11 @@
 
 
 
-(defn display-frame [^JPanel view frame]
-  (let [^BufferedImage img (decode/convert-frame frame)]
-    (.drawImage (.getGraphics view) img 0 0 view)))
+(defn display-frame [decoder ^JPanel view frame]
+  (let [^BufferedImage img (decoder frame)]
+    (when img
+      ;(.drawImage (.getGraphics view) img 0 0 view)
+      )))
 
 
 (defn -main [& args]
@@ -20,27 +22,33 @@
         ^JFrame window (JFrame. "Drone video")
         ^JPanel view (JPanel.)
         keep-decoding? (atom true)
-        lrq (pave/make-latency-reduction-queue)]
+        lrq (pave/make-frame-queue :reduce-latency? false)
+        decoder (decode/decoder)]
     (.setBounds window 0 0 640 360)
     (.add (.getContentPane window) view)
     (.setVisible window true)
-    (.start
-     (Thread.
-      (fn []
-        (if @keep-decoding?
-          (let [frame (pave/pull-frame lrq 500)]
-            (println frame)
-            (when frame
-              (display-frame view (:payload frame)))
-            (recur))
-          (log/info "exiting")))))
-    (loop [frame (pave/read-frame is)]
-      (if frame
-        (do
-          (pave/queue-frame lrq frame)
-          (Thread/sleep 35)
-          (recur (pave/read-frame is)))
-        (do
-          (reset! keep-decoding? false)
-          (Thread/sleep 100)
-          (println lrq))))))
+    (let [start-time (atom nil)
+          frame-count (atom 0)]
+      (.start
+       (Thread.
+        (fn []
+          (let [frame (pave/pull-frame lrq 100)]
+            (if frame
+              (do
+                (swap! frame-count inc)
+                (display-frame decoder view frame)
+                (recur))
+              (do
+                (println (/ @frame-count (/ (- (System/currentTimeMillis) @start-time) 1000.0)) " fps")
+                (log/info "exiting")))))))
+      (reset! start-time (System/currentTimeMillis))
+      (loop [frame (pave/read-frame is)]
+        (if frame
+          (do
+            (pave/queue-frame lrq frame)
+            (recur (pave/read-frame is)))
+          (do
+            ;;(reset! keep-decoding? false)
+            (Thread/sleep 100000)
+            ;(println lrq)
+            ))))))

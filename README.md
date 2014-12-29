@@ -45,7 +45,7 @@ following specific goals:
     decoders:
 
       * [h264j](https://code.google.com/p/h264j/) is pure Java.  It
-        decodes at about 20 FPS on my MacBook Air and has some color
+        decodes at about 30 FPS on my MacBook Air and has some color
         glitches and occasional errors.
 
       * [xuggler](http://www.xuggle.com/xuggler) has native code and
