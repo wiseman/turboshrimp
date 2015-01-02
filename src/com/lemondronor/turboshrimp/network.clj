@@ -1,5 +1,4 @@
 (ns com.lemondronor.turboshrimp.network
-  (:require [clojure.tools.logging :as log])
   (:import (java.net DatagramPacket DatagramSocket InetAddress Socket)
            (java.util Arrays))
   (:gen-class))

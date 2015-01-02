@@ -1,7 +1,7 @@
 (ns com.lemondronor.turboshrimp.at
   (:require [clojure.string :as string])
-  (:import (java.nio ByteBuffer)
-           (clojure.lang PersistentVector)))
+  (:import (clojure.lang PersistentVector)
+           (java.nio ByteBuffer)))
 
 (set! *warn-on-reflection* true)
 
