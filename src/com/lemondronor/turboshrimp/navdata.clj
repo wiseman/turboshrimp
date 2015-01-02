@@ -3,6 +3,7 @@
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util]
             [gloss.core :as gloss]
+            [gloss.io]
             [lazymap.core :as lazymap])
   (:import (java.net DatagramSocket)
            (java.nio ByteBuffer ByteOrder))
