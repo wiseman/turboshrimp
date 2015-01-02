@@ -14,7 +14,7 @@
   (DatagramSocket. (int port)))
 
 
-(defn make-tcp-socket [host port]
+(defn make-tcp-socket [^String host ^long port]
   (Socket. host port))
 
 
