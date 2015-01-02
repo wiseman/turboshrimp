@@ -64,4 +64,16 @@
         (is (= f1 (pave/pull-frame fq)))
         (is (= f2 (pave/pull-frame fq)))
         (is (= f3 (pave/pull-frame fq)))
-        (is (= nil (pave/pull-frame fq 1)))))))
+        (is (= nil (pave/pull-frame fq 1))))))
+  (testing "frame queue concurrency"
+    ;; This is pretty dumb.
+    (let [fq (pave/make-frame-queue)]
+      (doseq [f (map
+                 (fn [_]
+                   (future (pave/queue-frame fq {:frame-type pave/P-FRAME})))
+                 (range 1000))]
+        @f)
+      (is (= 1000 (count
+                   (filter identity
+                           (map (fn [_] (pave/pull-frame fq 1))
+                                (range 1001)))))))))

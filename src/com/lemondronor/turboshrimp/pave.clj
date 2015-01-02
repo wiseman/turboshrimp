@@ -4,9 +4,7 @@
   (:require [clojure.tools.logging :as log])
   (:import (java.io EOFException InputStream)
            (java.util.concurrent TimeUnit)
-           (java.util.concurrent.locks Condition Lock ReentrantLock))
-  (:gen-class))
-
+           (java.util.concurrent.locks Condition Lock ReentrantLock)))
 
 
 (defn bytes-to-int [^bytes ba offset num-bytes]
@@ -35,7 +33,7 @@
 (defn full-read
   "Reads a specified number of bytes from an InputStream.
 
-  Compensates for short reads, reading in a loop until the desired
+  Compensates for short reads by reading in a loop until the desired
   number of bytes has been read.  Returns a byte array.
 
   If the first attempt to read from the stream returns 0 bytes, this
@@ -77,10 +75,12 @@
           payload-size (get-int ba 8)]
       (assert (>= this-header-size header-size))
       (when (> this-header-size header-size)
-        ;; Header size can change from version to version.  Read the
-        ;; rest of the header and ignore it if there's more.
+        ;; Header size can change from version to version, so we read
+        ;; and ignore any remaining bytes.
         (full-read is (- this-header-size header-size)))
       (if (pave-frame? ba)
+        ;; We don't parse out the full header, just some of the parts
+        ;; we're interested in.
         {:header-size header-size
          :payload (or (full-read is payload-size)
                       (throw
@@ -93,7 +93,7 @@
          :frame-type (get-uint8 ba 30)
          :slice-index (get-uint8 ba 43)}
         (do
-          (log/info "Skipping non-PaVE frame")
+          (log/debug "Skipping non-PaVE frame")
           (recur is))))
     nil))
 
