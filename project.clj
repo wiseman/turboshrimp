@@ -8,7 +8,7 @@
                  [gloss "0.2.4"]
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.1"]]
-   :java-source-paths ["src/java"]
+  :java-source-paths ["src/java"]
   :profiles {:dev {:dependencies [[criterium "0.4.3"]
                                   [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]]}
