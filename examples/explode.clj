@@ -1,4 +1,4 @@
-(ns com.lemondronor.turboshrimp.navdata.explode
+(ns explode
   (:require [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemonodor.xio :as xio])
   (:gen-class))

@@ -1,4 +1,4 @@
-(ns com.lemondronor.turboshrimp.navdata.printnavdata
+(ns printnavdata
   (:require [clojure.pprint :as pprint]
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemonodor.xio :as xio])
