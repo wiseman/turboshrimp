@@ -59,6 +59,7 @@
 (defn navdata-handler [drone]
   (fn [navdata]
     (reset! (:navdata drone) navdata)
+    (reset! (:connected? drone) true)
     (raise-event drone :navdata navdata)))
 
 
