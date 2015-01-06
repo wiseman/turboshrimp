@@ -8,11 +8,13 @@
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.1"]]
   :java-source-paths ["src/java"]
-  :profiles {:dev {:dependencies [[com.lemondronor/turboshrimp-xuggler "0.0.2"]
-                                  [com.lemonodor/gflags "0.7.1"]
-                                  [com.lemonodor/xio "0.2.2"]
-                                  [org.clojars.echo/test.mock "0.1.2"]
-                                  [seesaw "1.4.4"]]
-                   :source-paths ["examples"]
+  :profiles {:dev {:dependencies [[com.lemonodor/xio "0.2.2"]
+                                  [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]]}
+             :example {:dependencies
+                       [[com.lemondronor/turboshrimp-xuggler "0.0.2"]
+                        [com.lemonodor/gflags "0.7.1"]
+                        [com.lemonodor/xio "0.2.2"]
+                        [seesaw "1.4.4"]]
+                       :source-paths ["examples"]}
              :uberjar {:aot :all}})
