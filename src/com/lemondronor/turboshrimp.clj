@@ -70,7 +70,7 @@
 
 (defn queue-command [drone command]
   (dosync
-   (alter (:command-queue drone) conj command)))
+   (alter (:command-queue drone) concat (list command))))
 
 
 (defn pop-commands [drone]
@@ -165,6 +165,8 @@
 (defn connect! [drone]
   (reset! (:socket drone) (network/make-datagram-socket (:port drone)))
   (navdata/start-navdata-stream @(:navdata-stream drone))
+  (command drone :ctrl 5 0)
+  (command drone :navdata-demo true)
   (let [thread-pool (util/make-sched-thread-pool 1)]
     (reset! (:thread-pool drone) thread-pool)
     (reset! (:command-executor drone)
@@ -178,10 +180,6 @@
                  (catch Throwable e
                    (log/error e "Error sending commands"))))
              thread-pool)))
-  ;; Set trim (assumes we're landed).
-  (command drone :flat-trim)
-  ;; Request basic navdata by default.
-  (command drone :navdata-demo)
   drone)
 
 
@@ -216,7 +214,7 @@
     ;;(video/start-video "192.168.1.1")
     (command drone :ref {:emergency true})
     (Thread/sleep 1000)
-    (command drone :flat-trim)
+    ;;(command drone :flat-trim)
     (Thread/sleep 100000)
     ;;(do-led-animation drone :blink-green-red 3 4000)
     ;;(do-led-animation drone :fire 0.5 4000)
