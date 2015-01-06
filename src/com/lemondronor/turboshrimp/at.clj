@@ -141,6 +141,52 @@
   (raw "CONFIG" [(stringize key) (stringize value)] true nil callback))
 
 
+(def navdata-flags
+  {:demo 0
+   :time 1
+   :raw-measures 2
+   :phys-measures 3
+   :gyros-offsets 4
+   :euler-angles 5
+   :references 6
+   :trims 7
+   :rc-references 8
+   :pwm 9
+   :altitude 10
+   :vision-raw 11
+   :vision-of 12
+   :vision 13
+   :vision-perf 14
+   :trackers-send 15
+   :vision-detect 16
+   :watchdog 17
+   :adc-data-frame 18
+   :video-stream 19
+   :games 20
+   :pressure-raw 21
+   :magneto 22
+   :wind-speed 23
+   :kalman-pressure 24
+   :hdvideo-stream 25
+   :wifi 26
+   :zimmu-3000 27
+   :gps 27})
+
+
+(def default-navdata-options
+  [:demo :vision-detect :magneto :gps])
+
+
+(defcommand :navdata-options [flags]
+  (build-command
+   :config
+   "general:navdata_options"
+   (reduce #(let [bit (or (navdata-flags %2) %2)]
+              (bit-or %1 (bit-shift-left 1 bit)))
+           0
+           flags)))
+
+
 (def ^PersistentVector led-animations
   [:blink-green-red
    :blink-green,

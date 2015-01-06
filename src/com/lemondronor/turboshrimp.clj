@@ -85,6 +85,7 @@
 (defn send-commands [drone]
   (let [[seq-num commands] (pop-commands drone)]
     (when (seq commands)
+      (log/debug "Sending" commands)
       (network/send-datagram
        @(:socket drone)
        (:addr drone)
