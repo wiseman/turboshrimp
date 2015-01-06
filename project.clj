@@ -1,7 +1,8 @@
 (defproject com.lemondronor/turboshrimp "0.3.7-SNAPSHOT"
   :description "Clojure API for the Parrot AR.Drone."
   :url "https://github.com/wiseman/turboshrimp"
-  :license {:name "MIT License"}
+  :license {:name "MIT License"
+            :url "http://opensource.org/licenses/MIT"}
   :deploy-repositories [["releases" :clojars]]
   :dependencies [[de.kotka/lazymap "3.1.1"]
                  [gloss "0.2.4"]

@@ -28,7 +28,7 @@ following specific goals:
     magneto, vision, etc.
 
   * Android compatibility.  I want to be able to use this code on
-    Android using [Clojure on Android](http://clojure-android.info/)
+    Android using [Clojure on Android](http://clojure-android.info/).
 
 I'm basing some of the new work on the
 [node-ar-drone](https://github.com/felixge/node-ar-drone) project.
@@ -57,7 +57,7 @@ I'm basing some of the new work on the
     Android phone.
 
 
-## Example controller
+## Example app
 
 There is an example of using the library to create a simple ground
 control station with keyboard control and live video with an overlaid
@@ -99,5 +99,4 @@ $ lein test
 
 Copyright 2014, 2015 John Wiseman jjwiseman@gmail.com
 
-Distributed under the [Eclipse Public License
-v1.0](http://www.eclipse.org/legal/epl-v10.html).
+Distributed under the [MIT License](http://opensource.org/licenses/MIT).
