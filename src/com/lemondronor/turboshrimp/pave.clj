@@ -152,7 +152,7 @@
           (let [[f & new-q] frames]
             (reset! q new-q)
             f)
-          (if (> num-tries 0)
+          (if (and timeout-ms (> num-tries 0))
             nil
             (do
               (if timeout-ms
