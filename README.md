@@ -36,9 +36,9 @@ I'm basing some of the new work on the
 
 ## Current status
 
-  * Flight control seems to work.
+  * Flight control works.
 
-  * Telemetry works--even GPS!  Telemetry is sent via a callback.
+  * Telemetry works--even GPS!
 
   * Video works.  I've tried two different H.264 decoders:
 
