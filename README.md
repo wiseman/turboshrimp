@@ -40,20 +40,46 @@ following specific goals:
 
   * Telemetry works--even GPS!  Telemetry is sent via a callback.
 
-  * Video is in progress.  There's a first draft PaVE parser (with
-    latency reduction), and I've experimented with two different H.264
-    decoders:
+  * Video works.  I've tried two different H.264 decoders:
 
-      * [h264j](https://code.google.com/p/h264j/) is pure Java.  It
-        decodes at about 30 FPS on my MacBook Air and has some color
-        glitches and occasional errors.
+      * [turboshrimp-h264j](https://github.com/wiseman/turboshrimp-h264j)
+        uses the pure Java [h264j](https://code.google.com/p/h264j/)
+        decoder.  h264j is a little slow and has some color glitches
+        and occasional errors.
 
-      * [xuggler](http://www.xuggle.com/xuggler) has native code and
-         decodes at about 50 fps.  Its output appears to be perfect.
+      * [turboshrimp-xuggler](https://github.com/wiseman/turboshrimp-xuggler)
+        uses the [xuggler](http://www.xuggle.com/xuggler) decoder,
+        which uses native code.  It's almost twice as fast as h264j
+        and its output appears to be perfect.
 
   * It runs on Android.  I don't check every commit, but I do
     periodically test on Android.  This code has flown a drone on an
     Android phone.
+
+
+## Example controller
+
+There is an example of using the library to create a simple ground
+control station with keyboard control and live video with an overlaid
+HUD:
+[examples/controller.clj](https://github.com/wiseman/turboshrimp/blob/master/examples/controller.clj)
+
+You can run the example like this:
+```
+# lein with-profile example run -m controller > debug.log
+```
+
+Once it's started, you can use the following controls:
+
+Key       | Command
+----------|--------
+t         | Take off
+l         | Land
+w/a/s/d   | Forward / turn left / backward/ turn right
+shift-a/d |"Strafe" left / right
+q / z     | Climb / descend
+c         | Switch to forward-facing camera
+v         | Switch to downward-facing camera
 
 
 ## Testing
@@ -65,7 +91,7 @@ $ lein test
 
 ## License
 
-Copyright 2014 John Wiseman jjwiseman@gmail.com
+Copyright 2014, 2015 John Wiseman jjwiseman@gmail.com
 
 Distributed under the [Eclipse Public License
 v1.0](http://www.eclipse.org/legal/epl-v10.html).
