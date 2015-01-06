@@ -1,27 +1,17 @@
 (ns controller
   (:require [clojure.java.io :as io]
+            [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp :as ar-drone]
             [com.lemondronor.turboshrimp.pave :as pave]
             [com.lemondronor.turboshrimp.xuggler :as video]
             [com.lemonodor.gflags :as gflags]
             [seesaw.core :as seesaw])
-  (:import [java.awt.event InputEvent KeyEvent]))
+  (:import [java.awt.event InputEvent KeyEvent]
+           [java.awt Graphics]
+           [java.awt.image BufferedImage]
+           [java.net Socket]
+           [javax.swing JPanel]))
 
-
-(defn data-display [text id]
-  (seesaw/grid-panel
-   :columns 2
-   :items [(seesaw/make-widget [:fill-h 10])
-           (seesaw/label :text text)
-           (seesaw/label :id id :text "0")]))
-
-
-(defn glue-button [id text]
-  (seesaw/horizontal-panel
-   :items
-   [(seesaw/make-widget :fill-h)
-    (seesaw/button :id id :text text)
-    (seesaw/make-widget :fill-h)]))
 
 
 (defn make-ui []
@@ -35,10 +25,15 @@
     :size [1280 :by 720])))
 
 
-(def default-speed 0.5)
-
+;; Keys are WASD/QZ, with Shift to "strafe":
+;; W / S  -  Move forward / Move backward
+;; A / D  -  Yaw left / Yaw right
+;; Q / Z  -  Climb / Descend
+;; Shift-A / Shift D  - Move left / Move right.
 
 (def key-actions
+  ;; Checked in order as they appear here, so make sure to put keys
+  ;; with mods first.
   [[{:code KeyEvent/VK_A :mod InputEvent/SHIFT_MASK} ar-drone/left]
    [{:code KeyEvent/VK_D :mod InputEvent/SHIFT_MASK} ar-drone/right]
    [{:code KeyEvent/VK_W} ar-drone/front]
@@ -46,7 +41,13 @@
    [{:code KeyEvent/VK_A} ar-drone/counter-clockwise]
    [{:code KeyEvent/VK_D} ar-drone/clockwise]
    [{:code KeyEvent/VK_Q} ar-drone/up]
-   [{:code KeyEvent/VK_Z} ar-drone/down]])
+   [{:code KeyEvent/VK_Z} ar-drone/down]
+   [{:code KeyEvent/VK_T} ar-drone/takeoff :continuous? false]
+   [{:code KeyEvent/VK_L} ar-drone/land :continuous? false]
+   [{:code KeyEvent/VK_C} #(ar-drone/command % :switch-camera :forward)
+    :continuous? false]
+   [{:code KeyEvent/VK_V} #(ar-drone/command % :switch-camera :down)
+    :continuous? false]])
 
 
 (defn key-descriptor-matches? [descriptor ^KeyEvent evt]
@@ -58,50 +59,80 @@
 
 (defn find-key-action [evt actions]
   (if-let [e (some #(if (key-descriptor-matches? (first %) evt) %) actions)]
-    e
+    (rest e)
     nil))
 
 
-(defn make-key-controller [ui drone]
-  (seesaw/listen
-   ui
-   :key (fn [^KeyEvent e]
-          (let [id (.getID e)]
-            (cond
-              (= id KeyEvent/KEY_PRESSED)
-              (if-let [action (find-key-action e key-actions)]
-                (println action))
-              (= id KeyEvent/KEY_RELEASED)
-              (if-let [action (find-key-action e key-actions)]
-                (println "STOPPING" action)))))))
+(def default-speed 0.5)
 
 
-(defn make-controller [ui drone]
-  (make-key-controller ui drone))
+(defn make-key-controller [drone]
+  (fn [^KeyEvent e]
+    (let [id (.getID e)]
+      (when-let [action (find-key-action e key-actions)]
+        (let [[action-fn & {:keys [continuous?]
+                            :or {continuous? true}}] action]
+          (let [action-args (cons
+                             drone
+                             (cond
+                               (and (= id KeyEvent/KEY_PRESSED) continuous?)
+                               (list default-speed)
+                               (and (= id KeyEvent/KEY_RELEASED) continuous?)
+                               (list 0.0)
+                               :else
+                               '()))]
+            (when (or (= id KeyEvent/KEY_PRESSED)
+                      (and (= id KeyEvent/KEY_RELEASED) continuous?))
+              (println "Running" action-fn action-args)
+              (apply action-fn action-args))))))))
+
+
+(def drone-video-port 5555)
+
+
+(defn connect-video-controller [ui drone]
+  (let [is (.getInputStream (Socket. (:hostname drone) drone-video-port))
+        fq (pave/make-frame-queue)
+        ^JPanel view (seesaw/select ui [:#video])
+        decoder (video/decoder)]
+    (doto
+        (Thread.
+         (fn []
+           (loop [frame (pave/read-frame is)]
+             (if frame
+               (pave/queue-frame fq frame)
+               (log/info "No frame?"))
+             (recur (pave/read-frame is)))))
+      (.setDaemon true)
+      (.start))
+    (doto
+        (Thread.
+         (fn []
+           (loop [frame (pave/pull-frame fq 1000)]
+             (if frame
+               (let [^BufferedImage image (decoder frame)]
+                 (seesaw/invoke-now
+                  (.drawImage
+                   (.getGraphics view)
+                   image
+                   0 0
+                   (.getWidth view) (.getHeight view)
+                   view)))
+               ;;(log/info "Delayed frame" frame fq)
+               )
+             (recur (pave/pull-frame fq 1000)))))
+      (.setDaemon true)
+      (.start))))
 
 
 (defn -main [& args]
   (let [ui (make-ui)
-        fq (pave/make-frame-queue)
-        is (io/input-stream (first args))
-        decoder (video/decoder)
         drone (ar-drone/make-drone)]
     (-> ui seesaw/pack! seesaw/show!)
-    (let [view (seesaw/select ui [:#video])]
-      (make-controller ui drone)
-      (doto
-          (Thread.
-           (fn []
-             (loop []
-               (let [image (-> fq
-                               pave/pull-frame
-                               decoder)]
-                 (seesaw/invoke-now
-                  (.drawImage (.getGraphics view) image 0 0 1280 720 view)))
-               (recur))))
-        (.start))
-      (loop [frame (pave/read-frame is)]
-        (when frame
-          (pave/queue-frame fq frame)
-          (Thread/sleep 30)
-          (recur (pave/read-frame is)))))))
+    (seesaw/listen ui :key (make-key-controller drone))
+    (connect-video-controller ui drone)
+    (ar-drone/connect! drone)
+    ;;(doseq [i (range 10)]
+    ;;  (ar-drone/command drone :flat-trim)
+    ; ; (Thread/sleep 500))
+    ))
