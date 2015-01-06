@@ -1,7 +1,9 @@
 (ns controller
+  "Example drone controller."
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp :as ar-drone]
+            [com.lemondronor.turboshrimp.at :as commands]
             [com.lemondronor.turboshrimp.pave :as pave]
             [com.lemondronor.turboshrimp.xuggler :as video]
             [com.lemonodor.gflags :as gflags]
@@ -11,7 +13,6 @@
            [java.awt.image BufferedImage]
            [java.net Socket]
            [javax.swing JPanel]))
-
 
 
 (defn make-ui []
@@ -25,11 +26,23 @@
     :size [1280 :by 720])))
 
 
+;; This is our list of keyboard-based actions.
+;;
 ;; Keys are WASD/QZ, with Shift to "strafe":
 ;; W / S  -  Move forward / Move backward
 ;; A / D  -  Yaw left / Yaw right
 ;; Q / Z  -  Climb / Descend
 ;; Shift-A / Shift D  - Move left / Move right.
+;;
+;; T / L  - Takeoff / Land
+;; C / V  - Switch to forward- / down- facing camera.
+;;
+;; Each action is a key descriptor and a function.  The descriptor is
+;; a keycode and optional modifiers.  All functions take at least one
+;; argument--the drone.  Continuous functions (the default) are called
+;; with a second argument, which is speed (0.0 - 1.0).  When their key
+;; is pressed, they're called with the default speed; When their key
+;; is released, they're called with a speed of 0.0.
 
 (def key-actions
   ;; Checked in order as they appear here, so make sure to put keys
@@ -50,14 +63,18 @@
     :continuous? false]])
 
 
-(defn key-descriptor-matches? [descriptor ^KeyEvent evt]
+(defn key-descriptor-matches?
+  "Tests whether a key descriptor matches a KeyEvent."
+  [descriptor ^KeyEvent evt]
   (and (= (:code descriptor) (.getKeyCode evt))
        (if-let [modifier (:mod descriptor)]
          (not (zero? (bit-and modifier (.getModifiers evt))))
          true)))
 
 
-(defn find-key-action [evt actions]
+(defn find-key-action
+  "Given a KeyEvent, returns the matching action."
+  [evt actions]
   (if-let [e (some #(if (key-descriptor-matches? (first %) evt) %) actions)]
     (rest e)
     nil))
@@ -66,7 +83,9 @@
 (def default-speed 0.5)
 
 
-(defn make-key-controller [drone]
+(defn make-key-controller
+  "Makes a controller that mediates between key events and the drone."
+  [drone]
   (fn [^KeyEvent e]
     (let [id (.getID e)]
       (when-let [action (find-key-action e key-actions)]
@@ -87,48 +106,66 @@
               (apply action-fn action-args))))))))
 
 
-(defn norm [v]
+(defn magnitude
+  "Returns the magnitude of a vector."
+  [v]
   (Math/sqrt (reduce + (map #(* % %) v))))
 
 
-(defn deg2rad [d]
+(defn deg2rad
+  "Converts degrees to radians."
+  [d]
   (* d (/ Math/PI 180.0)))
 
 
-(defn draw-hud [^JPanel view ^Graphics2D g drone]
+(defn draw-hud
+  "Draws a simple HUD."
+  [^JPanel view ^Graphics2D g drone]
   (let [navdata @(:navdata drone)
+        batt (get-in navdata [:demo :battery-percentage])
         pitch (get-in navdata [:demo :theta])
         roll (get-in navdata [:demo :phi])
         hdg (get-in navdata [:magneto :heading :fusion-unwrapped])
         alt (get-in navdata [:demo :altitude])
         vel (get-in navdata [:demo :velocity])
-        spd (norm (vals vel))]
-    (.setFont g (Font. "SansSerif" Font/PLAIN 24))
+        spd (magnitude (vals vel))
+        lat (get-in navdata [:gps :lat-fuse])
+        lon (get-in navdata [:gps :lon-fuse])]
+    (.setFont g (Font. "Futura" Font/PLAIN 24))
     (.setColor g Color/WHITE)
     (if spd
       (.drawString g (format "SPD %.1f m/s" (/ spd 1000.0)) 10 30)
       (.drawString g "SPD unk" 10 30))
     (if alt
-      (.drawString g (format "ALT %.1f m" (/ alt 1000.0)) 10 60)
+      (.drawString g (format "ALT %.1f m" (/ alt 1.0)) 10 60)
       (.drawString g "ALT unk" 10 60))
     (if hdg
       (.drawString g (str "HDG " (int hdg)) 10 90)
       (.drawString g "HDG unk" 10 90))
-    (when roll
+    (when (and lat lon)
+      (.drawString g (format "LAT %.5f" lat) 10 120)
+      (.drawString g (format "LON %.5f" lon) 10 150))
+    (when batt
+      (.drawString g (format "BATT %s %%" batt) 10 180))
+    (when (and roll pitch)
       (let [h (.getHeight view)
+            w (.getWidth view)
             h2 (/ h 2.0)
-            ph (+ h2 (* 1.7 h (Math/sin (deg2rad pitch))))]
-        (.rotate g (- (deg2rad roll)) (/ (.getWidth view) 2.0) h2)
-        (.drawLine g -500 ph (+ (.getWidth view) 500) ph)
-        (.rotate g (deg2rad roll) (/ (.getWidth view) 2.0) h2)
-        ))))
+            ;; The value 1.65 was obtained by uh eyeballing.  Is sin
+            ;; even the right thing to use here?
+            ph (+ h2 (* 1.65 h (Math/sin (deg2rad pitch))))]
+        (.rotate g (- (deg2rad roll)) (/ w 2.0) h2)
+        (.drawLine g -500 ph (+ w 500) ph)
+        (.rotate g (deg2rad roll) (/ w 2.0) h2)))))
+
+
+(defn draw-frame
+  "Draws a video frame."
+  [^JPanel view ^Graphics g ^BufferedImage image]
+  (.drawImage g image 0 0 (.getWidth view) (.getHeight view) nil))
 
 
 (def drone-video-port 5555)
-
-
-(defn draw-image [^JPanel view ^Graphics g ^BufferedImage image]
-  (.drawImage g image 0 0 (.getWidth view) (.getHeight view) nil))
 
 
 (defn connect-video-controller [ui drone]
@@ -155,11 +192,12 @@
                      (.getHeight view)
                      BufferedImage/TYPE_INT_ARGB)
                  gbi (.createGraphics bi)]
+             (draw-hud view gbi drone)
              (loop [frame (pave/pull-frame fq 1000)]
                (when frame
                  (let [^BufferedImage image (decoder frame)]
                    (seesaw/invoke-now
-                    (draw-image view gbi image)
+                    (draw-frame view gbi image)
                     (draw-hud view gbi drone)
                     (.drawImage g bi 0 0 nil))))
                (recur (pave/pull-frame fq 1000))))))
@@ -174,7 +212,4 @@
     (seesaw/listen ui :key (make-key-controller drone))
     (connect-video-controller ui drone)
     (ar-drone/connect! drone)
-    ;;(doseq [i (range 10)]
-    ;;  (ar-drone/command drone :flat-trim)
-    ; ; (Thread/sleep 500))
-    ))
+    (ar-drone/command drone :navdata-options commands/default-navdata-options)))
