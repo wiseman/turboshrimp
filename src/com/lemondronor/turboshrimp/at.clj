@@ -211,5 +211,18 @@
      (string/join "," [id duration]))))
 
 
-(defcommand :navdata-demo []
-  (build-command :config "general:navdata_demo" "FALSE"))
+(defcommand :navdata-demo [enabled?]
+  (build-command
+   :config "general:navdata_demo"
+   (if enabled? "TRUE" "FALSE")))
+
+
+(defcommand :switch-camera [direction]
+  (build-command
+   :config "video:video_channel"
+   (case direction
+     :forward 0
+     :down 3)))
+
+(defcommand :set-camera-framerate [fps]
+  (build-command :config "video:codec_fps" fps))
