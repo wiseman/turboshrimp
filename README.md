@@ -70,7 +70,10 @@ You can run the example like this:
 ```
 
 ![Alt text](/media/screenshots/turboshrimp-hud.jpg?raw=true "Turboshrimp HUD")
+
 (Hey look, it's Ralph & Dottie!)
+
+Here's a video of the HUD in action: https://www.youtube.com/watch?v=2mOtoYUoiWI
 
 Once the controller has started, you can use the following controls:
 
