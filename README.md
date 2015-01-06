@@ -30,7 +30,7 @@ following specific goals:
   * Android compatibility.  I want to be able to use this code on
     Android using [Clojure on Android](http://clojure-android.info/)
 
- I'm basing some of the new work on the
+I'm basing some of the new work on the
 [node-ar-drone](https://github.com/felixge/node-ar-drone) project.
 
 
