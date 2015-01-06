@@ -69,7 +69,10 @@ You can run the example like this:
 # lein with-profile example run -m controller > debug.log
 ```
 
-Once it's started, you can use the following controls:
+![Alt text](/media/screenshots/turboshrimp-hud.jpg?raw=true "Turboshrimp HUD")
+(Hey look, it's Ralph & Dottie!)
+
+Once the controller has started, you can use the following controls:
 
 Key       | Command
 ----------|--------
