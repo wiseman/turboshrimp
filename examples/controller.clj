@@ -7,7 +7,7 @@
             [com.lemonodor.gflags :as gflags]
             [seesaw.core :as seesaw])
   (:import [java.awt.event InputEvent KeyEvent]
-           [java.awt Graphics]
+           [java.awt Color Font Graphics Graphics2D]
            [java.awt.image BufferedImage]
            [java.net Socket]
            [javax.swing JPanel]))
@@ -87,7 +87,48 @@
               (apply action-fn action-args))))))))
 
 
+(defn norm [v]
+  (Math/sqrt (reduce + (map #(* % %) v))))
+
+
+(defn deg2rad [d]
+  (* d (/ Math/PI 180.0)))
+
+
+(defn draw-hud [^JPanel view ^Graphics2D g drone]
+  (let [navdata @(:navdata drone)
+        pitch (get-in navdata [:demo :theta])
+        roll (get-in navdata [:demo :phi])
+        hdg (get-in navdata [:magneto :heading :fusion-unwrapped])
+        alt (get-in navdata [:demo :altitude])
+        vel (get-in navdata [:demo :velocity])
+        spd (norm (vals vel))]
+    (.setFont g (Font. "SansSerif" Font/PLAIN 24))
+    (.setColor g Color/WHITE)
+    (if spd
+      (.drawString g (format "SPD %.1f m/s" (/ spd 1000.0)) 10 30)
+      (.drawString g "SPD unk" 10 30))
+    (if alt
+      (.drawString g (format "ALT %.1f m" (/ alt 1000.0)) 10 60)
+      (.drawString g "ALT unk" 10 60))
+    (if hdg
+      (.drawString g (str "HDG " (int hdg)) 10 90)
+      (.drawString g "HDG unk" 10 90))
+    (when roll
+      (let [h (.getHeight view)
+            h2 (/ h 2.0)
+            ph (+ h2 (* 1.7 h (Math/sin (deg2rad pitch))))]
+        (.rotate g (- (deg2rad roll)) (/ (.getWidth view) 2.0) h2)
+        (.drawLine g -500 ph (+ (.getWidth view) 500) ph)
+        (.rotate g (deg2rad roll) (/ (.getWidth view) 2.0) h2)
+        ))))
+
+
 (def drone-video-port 5555)
+
+
+(defn draw-image [^JPanel view ^Graphics g ^BufferedImage image]
+  (.drawImage g image 0 0 (.getWidth view) (.getHeight view) nil))
 
 
 (defn connect-video-controller [ui drone]
@@ -108,19 +149,20 @@
     (doto
         (Thread.
          (fn []
-           (loop [frame (pave/pull-frame fq 1000)]
-             (if frame
-               (let [^BufferedImage image (decoder frame)]
-                 (seesaw/invoke-now
-                  (.drawImage
-                   (.getGraphics view)
-                   image
-                   0 0
-                   (.getWidth view) (.getHeight view)
-                   view)))
-               ;;(log/info "Delayed frame" frame fq)
-               )
-             (recur (pave/pull-frame fq 1000)))))
+           (let [g (.getGraphics view)
+                 bi (BufferedImage.
+                     (.getWidth view)
+                     (.getHeight view)
+                     BufferedImage/TYPE_INT_ARGB)
+                 gbi (.createGraphics bi)]
+             (loop [frame (pave/pull-frame fq 1000)]
+               (when frame
+                 (let [^BufferedImage image (decoder frame)]
+                   (seesaw/invoke-now
+                    (draw-image view gbi image)
+                    (draw-hud view gbi drone)
+                    (.drawImage g bi 0 0 nil))))
+               (recur (pave/pull-frame fq 1000))))))
       (.setDaemon true)
       (.start))))
 
