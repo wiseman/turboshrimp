@@ -165,11 +165,12 @@
   (.drawImage g image 0 0 (.getWidth view) (.getHeight view) nil))
 
 
-(def drone-video-port 5555)
+(defn get-video-input-stream [drone]
+  (.getInputStream (Socket. (:hostname drone) ar-drone/default-video-port)))
 
 
 (defn connect-video-controller [ui drone]
-  (let [is (.getInputStream (Socket. (:hostname drone) drone-video-port))
+  (let [is (get-video-input-stream drone)
         fq (pave/make-frame-queue)
         ^JPanel view (seesaw/select ui [:#video])
         decoder (video/decoder)]
