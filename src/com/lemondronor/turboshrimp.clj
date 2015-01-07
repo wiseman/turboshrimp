@@ -16,6 +16,9 @@
 ;; The default port to use for AT control commands.
 (def default-at-port 5556)
 
+;; The default port for streaming video.
+(def default-video-port 5555)
+
 ;; The default drone communication timeout, in milliseconds.
 (def socket-timeout (atom 60000))
 
@@ -188,41 +191,3 @@
   (util/cancel-scheduled-task @(:command-executor drone))
   (util/shutdown-pool @(:thread-pool drone))
   (network/close-socket @(:socket drone)))
-
-
-(defn drone-do-for [drone seconds command-key & [w x y z]]
-  (when (pos? seconds)
-    (command drone command-key w x y z)
-    (Thread/sleep 30)
-    (recur drone (- seconds 0.03) command-key [w x y z])))
-
-
-(defn do-led-animation [drone name hz duration]
-  (log/info name)
-  (command drone :animate-leds name hz duration)
-  (Thread/sleep 6000))
-
-
-(defn -main [& args]
-  (log/info "HELLO")
-  (let [drone (make-drone
-               :event-handler (fn [& args]
-                                ;;(println args)
-                                ))]
-    (connect! drone)
-    (log/info "Connected")
-    ;;(video/init-video "192.168.1.1")
-    ;;(video/start-video "192.168.1.1")
-    (command drone :ref {:emergency true})
-    (Thread/sleep 1000)
-    ;;(command drone :flat-trim)
-    (Thread/sleep 100000)
-    ;;(do-led-animation drone :blink-green-red 3 4000)
-    ;;(do-led-animation drone :fire 0.5 4000)
-    ;;(do-led-animation drone :red-snake 3 4000)
-    ;;(do-led-animation drone :blank 2 0)
-    ;;(takeoff drone)
-    ;;(clockwise drone 1.0)
-    (Thread/sleep 5000)
-    (land drone)
-    (Thread/sleep 500)))
