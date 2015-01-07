@@ -32,11 +32,12 @@
   ;;        (mock/has-args [drone "AT*REF=2,290718208\r"])
   ;;        (mock/times 1))]
   ;;      (ar-drone/command drone :take-off))))
-  (testing "drone-do-for command calls drone command every 30 sec"
-    (let [drone (ar-drone/make-drone)]
-      (mock/expect
-       [ar-drone/command
-        (->>
-         (mock/has-args [drone :take-off nil nil nil nil])
-         (mock/times #(< 0 %)))]
-       (ar-drone/drone-do-for drone 1 :take-off)))))
+  ;; (testing "drone-do-for command calls drone command every 30 sec"
+  ;;   (let [drone (ar-drone/make-drone)]
+  ;;     (mock/expect
+  ;;      [ar-drone/command
+  ;;       (->>
+  ;;        (mock/has-args [drone :take-off nil nil nil nil])
+  ;;        (mock/times #(< 0 %)))]
+  ;;      (ar-drone/drone-do-for drone 1 :take-off))))
+  )
