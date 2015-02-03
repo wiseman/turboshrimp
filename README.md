@@ -69,7 +69,7 @@ You can run the example like this:
 # lein with-profile example run -m controller > debug.log
 ```
 
-![Alt text](/media/screenshots/turboshrimp-hud.jpg?raw=true "Turboshrimp HUD")
+![Turboshrimp HUD](/media/screenshots/turboshrimp-hud.jpg?raw=true "Turboshrimp HUD")
 
 (Hey look, it's Ralph & Dottie!)
 
