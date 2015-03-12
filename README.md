@@ -88,6 +88,13 @@ c         | Switch to forward-facing camera
 v         | Switch to downward-facing camera
 
 
+## Other apps
+
+[Shrimpdroid](https://github.com/wiseman/shrimpdroid) is an Android
+app that uses turboshrimp to let you fly a drone with your phone.
+
+![Shrimpdroid screenshot](/media/screenshots/turboshrimp-hud.jpg?raw=true)
+
 ## Testing
 
 ```
