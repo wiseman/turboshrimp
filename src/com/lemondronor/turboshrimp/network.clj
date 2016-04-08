@@ -6,15 +6,15 @@
 (set! *warn-on-reflection* true)
 
 
-(defn get-addr ^InetAddress [name]
+(defn get-addr ^java.net.InetAddress [name]
   (InetAddress/getByName name))
 
 
-(defn make-datagram-socket ^DatagramSocket [port]
+(defn make-datagram-socket ^java.net.DatagramSocket [port]
   (DatagramSocket. (int port)))
 
 
-(defn make-tcp-socket [^String host ^long port]
+(defn make-tcp-socket ^java.net.Socket [^String host ^long port]
   (Socket. host port))
 
 
@@ -22,7 +22,7 @@
   (.close socket))
 
 
-(defn make-datagram-packet ^DatagramPacket [size]
+(defn make-datagram-packet ^java.net.DatagramPacket [size]
   (DatagramPacket. (byte-array size) size))
 
 

@@ -5,8 +5,7 @@
             [gloss.core :as gloss]
             [gloss.io]
             [lazymap.core :as lazymap])
-  (:import (java.net DatagramSocket)
-           (java.nio ByteBuffer ByteOrder))
+  (:import (java.nio ByteBuffer ByteOrder))
   (:gen-class))
 
 (set! *warn-on-reflection* true)

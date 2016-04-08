@@ -5,6 +5,7 @@
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util])
+  (:import (java.io Writer))
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -44,7 +45,7 @@
      command-executor])
 
 
-(defmethod print-method Drone [d ^java.io.Writer w]
+(defmethod print-method Drone [d ^Writer w]
   (.write w (str "#<Drone "
                  (:addr d) " "
                  (if @(:connected? d)
@@ -129,19 +130,23 @@
 
 
 (defn command [drone command-key & args]
-  (queue-command drone (apply at/build-command command-key args)))
+  (queue-command drone (apply at/build-command command-key args))
+  drone)
 
 
 (defn takeoff [drone]
-  (swap! (:ref drone) assoc :fly true))
+  (swap! (:ref drone) assoc :fly true)
+  drone)
 
 
 (defn land [drone]
-  (swap! (:ref drone) assoc :fly false))
+  (swap! (:ref drone) assoc :fly false)
+  drone)
 
 
 (defn stop [drone]
-  (reset! (:pcmd drone) {}))
+  (reset! (:pcmd drone) {})
+  drone)
 
 
 (defn- assoc-exclusive [map k1 k2 v]
@@ -155,9 +160,11 @@
         b-key (keyword b)]
     `(do
        (defn ~a [~'drone ~'speed]
-         (swap! (:pcmd ~'drone) assoc-exclusive ~a-key ~b-key ~'speed))
+         (swap! (:pcmd ~'drone) assoc-exclusive ~a-key ~b-key ~'speed)
+         ~'drone)
        (defn ~b [~'drone ~'speed]
-         (swap! (:pcmd ~'drone) assoc-exclusive ~b-key ~a-key ~'speed)))))
+         (swap! (:pcmd ~'drone) assoc-exclusive ~b-key ~a-key ~'speed)
+         ~'drone))))
 
 
 (defpcmds [up down])
@@ -190,4 +197,5 @@
 (defn disconnect! [drone]
   (util/cancel-scheduled-task @(:command-executor drone))
   (util/shutdown-pool @(:thread-pool drone))
-  (network/close-socket @(:socket drone)))
+  (network/close-socket @(:socket drone))
+  drone)
