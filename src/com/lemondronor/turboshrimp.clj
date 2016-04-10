@@ -36,6 +36,7 @@
      command-queue
      ref
      pcmd
+     disable-emergency?
      seq-num
      connected?
      event-handler
@@ -64,6 +65,13 @@
   (fn [navdata]
     (reset! (:navdata drone) navdata)
     (reset! (:connected? drone) true)
+    (let [disable-emergency? (:disable-emergency? drone)
+          state (:state navdata)]
+      (if (and state (= (:emergency-landing state) :on) @disable-emergency?)
+        (swap! (:ref drone) assoc :emergency true)
+        (do
+          (swap! (:ref drone) assoc :emergency false)
+          (reset! disable-emergency? false))))
     (raise-event drone :navdata navdata)))
 
 
@@ -113,6 +121,7 @@
                 :command-queue (ref '())
                 :ref (atom {})
                 :pcmd (atom {})
+                :disable-emergency? (atom false)
                 :seq-num (ref 1)
                 :connected? (atom false)
                 :event-handler event-handler
@@ -167,6 +176,10 @@
   drone)
 
 
+(defn disable-emergency [drone]
+  (reset! (:disable-emergency? drone) true))
+
+
 (defn- assoc-exclusive
   "Sets k1 to v and removes k2 from a map."
   [map k1 k2 v]
@@ -196,8 +209,8 @@
 (defn connect! [drone]
   (reset! (:socket drone) (network/make-datagram-socket (:port drone)))
   (navdata/start-navdata-stream @(:navdata-stream drone))
-  (command drone :ctrl 5 0)
-  (command drone :navdata-demo true)
+  (ctrl 5 0)
+  (navdata-demo true)
   (let [thread-pool (util/make-sched-thread-pool 1)]
     (reset! (:thread-pool drone) thread-pool)
     (reset! (:command-executor drone)
@@ -205,8 +218,8 @@
              30
              (fn []
                (try
-                 (command drone :ref @(:ref drone))
-                 (command drone :pcmd @(:pcmd drone))
+                 (ref drone @(:ref drone))
+                 (pcmd drone :pcmd @(:pcmd drone))
                  (send-commands drone)
                  (catch Throwable e
                    (log/error e "Error sending commands"))))
