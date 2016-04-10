@@ -31,6 +31,7 @@
           assoc
           ~name
           {:name ~name
+           :args '~args
            :builder
            (fn ~args
              ~@body)}))

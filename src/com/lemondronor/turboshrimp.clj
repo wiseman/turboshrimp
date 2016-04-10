@@ -27,7 +27,7 @@
 ;; This record represents a drone.  The connected?, counter,
 ;; keep-streaming-navdata and navdata-handler fields are atoms.
 
-(defrecord Drone
+(defrecord ^:private Drone
     [name
      hostname
      socket
@@ -54,13 +54,13 @@
                  ">")))
 
 
-(defn raise-event [drone event-type & args]
+(defn- raise-event [drone event-type & args]
   (log/debug "Event" event-type args)
   (when-let [handler (:event-handler drone)]
     (apply handler event-type args)))
 
 
-(defn navdata-handler [drone]
+(defn- navdata-handler [drone]
   (fn [navdata]
     (reset! (:navdata drone) navdata)
     (reset! (:connected? drone) true)
@@ -72,12 +72,12 @@
     (raise-event drone :error exception)))
 
 
-(defn queue-command [drone command]
+(defn- queue-command [drone command]
   (dosync
    (alter (:command-queue drone) concat (list command))))
 
 
-(defn pop-commands [drone]
+(defn- pop-commands [drone]
   (dosync
    (let [commands @(:command-queue drone)
          seq-num @(:seq-num drone)]
@@ -86,7 +86,7 @@
      [seq-num commands])))
 
 
-(defn send-commands [drone]
+(defn- send-commands [drone]
   (let [[seq-num commands] (pop-commands drone)]
     (when (seq commands)
       (log/debug "Sending" commands)
@@ -129,9 +129,27 @@
     drone))
 
 
-(defn command [drone command-key & args]
+(defn- command [drone command-key & args]
   (queue-command drone (apply at/build-command command-key args))
   drone)
+
+
+(defmacro def-all-at-commands []
+  (let [args-sym (gensym)]
+    `(do
+       ~@(map (fn [cmd]
+                (let [fn-name (symbol (name (:name cmd)))]
+                  `(do
+                     (defn ~fn-name [drone# & ~args-sym]
+                       (apply command drone# ~(:name cmd) ~args-sym))
+                     (alter-meta!
+                      (var ~fn-name)
+                      (fn [metadata#]
+                        (assoc metadata# :arglists (list '~(:args cmd))))))))
+              (vals @at/command-table)))))
+
+
+(def-all-at-commands)
 
 
 (defn takeoff [drone]
@@ -149,13 +167,15 @@
   drone)
 
 
-(defn- assoc-exclusive [map k1 k2 v]
+(defn- assoc-exclusive
+  "Sets k1 to v and removes k2 from a map."
+  [map k1 k2 v]
   (-> map
       (assoc k1 v)
       (dissoc k2)))
 
 
-(defmacro defpcmds [[a b]]
+(defmacro ^:private defpcmds [[a b]]
   (let [a-key (keyword a)
         b-key (keyword b)]
     `(do
