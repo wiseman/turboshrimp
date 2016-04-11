@@ -63,11 +63,15 @@
 
 (defn- navdata-handler [drone]
   (fn [navdata]
+    ;; Update the drone's current navdata.
     (reset! (:navdata drone) navdata)
+    ;; Receipt of navdata tells us we're connected to the drone.
     (reset! (:connected? drone) true)
+    ;; If a user has requested a reset of the emergency state, do that
+    ;; now.
     (let [disable-emergency? (:disable-emergency? drone)
           state (:state navdata)]
-      (if (and state (= (:emergency-landing state) :on) @disable-emergency?)
+      (if (and state (= (:emergency state) :detected) @disable-emergency?)
         (swap! (:ref drone) assoc :emergency true)
         (do
           (swap! (:ref drone) assoc :emergency false)
@@ -80,11 +84,14 @@
     (raise-event drone :error exception)))
 
 
+;; Queue's an already built AT command for the drone.
 (defn- queue-command [drone command]
   (dosync
    (alter (:command-queue drone) concat (list command))))
 
 
+;; Pops all commands off the command queue and updates the command
+;; sequence number.
 (defn- pop-commands [drone]
   (dosync
    (let [commands @(:command-queue drone)
@@ -94,6 +101,7 @@
      [seq-num commands])))
 
 
+;; Sends queued commands to the drone.
 (defn- send-commands [drone]
   (let [[seq-num commands] (pop-commands drone)]
     (when (seq commands)
@@ -118,11 +126,11 @@
                 :socket (atom nil)
                 :addr (network/get-addr hostname)
                 :port at-port
-                :command-queue (ref '())
+                :command-queue (clojure.core/ref '())
                 :ref (atom {})
                 :pcmd (atom {})
                 :disable-emergency? (atom false)
-                :seq-num (ref 1)
+                :seq-num (clojure.core/ref 1)
                 :connected? (atom false)
                 :event-handler event-handler
                 :navdata-stream (atom nil)
@@ -138,6 +146,7 @@
     drone))
 
 
+;; Builds and queues an AT command for the drone.
 (defn- command [drone command-key & args]
   (queue-command drone (apply at/build-command command-key args))
   drone)
@@ -161,22 +170,30 @@
 (def-all-at-commands)
 
 
-(defn takeoff [drone]
+(defn takeoff
+  "Commands the drone to take off."
+  [drone]
   (swap! (:ref drone) assoc :fly true)
   drone)
 
 
-(defn land [drone]
+(defn land
+  "Commands the drone to land."
+  [drone]
   (swap! (:ref drone) assoc :fly false)
   drone)
 
 
-(defn stop [drone]
+(defn stop
+  "Commands the drone to stop all motion."
+    [drone]
   (reset! (:pcmd drone) {})
   drone)
 
 
-(defn disable-emergency [drone]
+(defn disable-emergency
+  "Resets the drone's emergency stop state."
+  [drone]
   (reset! (:disable-emergency? drone) true))
 
 
@@ -206,11 +223,13 @@
 (defpcmds [clockwise counter-clockwise])
 
 
-(defn connect! [drone]
+(defn connect!
+  "Connects to a drone's command channel and telemtry channel."
+  [drone]
   (reset! (:socket drone) (network/make-datagram-socket (:port drone)))
   (navdata/start-navdata-stream @(:navdata-stream drone))
-  (ctrl 5 0)
-  (navdata-demo true)
+  (ctrl drone 5 0)
+  (navdata-demo drone true)
   (let [thread-pool (util/make-sched-thread-pool 1)]
     (reset! (:thread-pool drone) thread-pool)
     (reset! (:command-executor drone)
@@ -219,7 +238,7 @@
              (fn []
                (try
                  (ref drone @(:ref drone))
-                 (pcmd drone :pcmd @(:pcmd drone))
+                 (pcmd drone @(:pcmd drone))
                  (send-commands drone)
                  (catch Throwable e
                    (log/error e "Error sending commands"))))
@@ -227,8 +246,13 @@
   drone)
 
 
-(defn disconnect! [drone]
-  (util/cancel-scheduled-task @(:command-executor drone))
-  (util/shutdown-pool @(:thread-pool drone))
-  (network/close-socket @(:socket drone))
+(defn disconnect!
+  "Disconnects from a drone."
+  [drone]
+  (when-let [executor @(:command-executor drone)]
+    (util/cancel-scheduled-task executor))
+  (when-let [pool @(:thread-pool drone)]
+    (util/shutdown-pool pool))
+  (when-let [socket @(:socket drone)]
+    (network/close-socket socket))
   drone)

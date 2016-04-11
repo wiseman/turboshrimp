@@ -1,5 +1,6 @@
 (ns com.lemondronor.turboshrimp.network
-  (:import (java.net DatagramPacket DatagramSocket InetAddress Socket)
+  (:import (java.io Closeable)
+           (java.net DatagramPacket DatagramSocket InetAddress Socket)
            (java.util Arrays))
   (:gen-class))
 
@@ -18,7 +19,7 @@
   (Socket. host port))
 
 
-(defn close-socket [^Socket socket]
+(defn close-socket [^Closeable socket]
   (.close socket))
 
 
