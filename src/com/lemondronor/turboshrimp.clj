@@ -85,7 +85,7 @@
     (raise-event drone :error exception)))
 
 
-;; Queue's an already built AT command for the drone.
+;; Queues an already built AT command for the drone.
 (defn- queue-command [drone command]
   (dosync
    (alter (:command-queue drone) concat (list command))))
