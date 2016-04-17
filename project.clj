@@ -15,7 +15,10 @@
                                   [org.clojars.echo/test.mock "0.1.2"]]
                    :plugins [[lein-cloverage "1.0.2"]
                              [lein-codox "0.9.4"]]
-                   :codox {:metadata {:doc/format :markdown}}}
+                   :codox {:metadata {:doc/format :markdown}
+                           :project {:version "2.0.1"}
+                           :html {:namespace-list :flat}
+                           :source-uri "https://github.com/wiseman/turboshrimp/blob/{version}/{filepath}#L{line}"}}
              :example {:dependencies
                        [[com.lemondronor/turboshrimp-xuggler "0.0.4"]
                         [com.lemonodor/gflags "0.7.3"]

@@ -9,7 +9,8 @@
             [com.lemondronor.turboshrimp.navdata :as navdata]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util])
-  (:import (java.io Writer))
+  (:import (java.io Writer)
+           (java.net Socket))
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -261,6 +262,15 @@
   [counter-clockwise
     "Commands the drone to begin rotating counter-clockwise.
    `speed` should be a number in the range [0.0, 1.0]."])
+
+
+(defn video-input-stream
+  "Creates an `InputStream` connected to a drone's video stream.
+
+  See [[com.lemondronor.turboshrimp.pave]] for more information about
+  how to use a drone's video stream."
+  [drone]
+  (.getInputStream (Socket. ^String (:hostname drone) ^int default-video-port)))
 
 
 (defn connect!

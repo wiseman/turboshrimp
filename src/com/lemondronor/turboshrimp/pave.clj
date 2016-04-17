@@ -2,9 +2,49 @@
   "Code for reading and parsing video data in Parrot Video
   Encapsulated (PaVE) format.
 
-  To actually decode PaVE video, you will need something like
+  Typically you will do something like the following:
+
+  * Create a frame queue ([[make-frame-queue]]), a video input
+  stream ([[video-input-stream]]), and a video decoder (see e.g.
   the [turboshrimp-xuggler](https://github.com/wiseman/turboshrimp-xuggler)
-  library."
+  library).
+
+  * Create a thread that calls [[read-frame]] on the input stream and
+  uses [[queue-frame]] to put frames in the queue.
+
+  * Create another thread that uses [[pull-frame]] to get a video
+  frame from the queue and then uses the decoder to decode the frame
+  into an image.
+
+  The following example code follows this pattern. It also puts the
+  decoded images into an async channel, from which presumably another
+  thread will get the images and display them on screen.
+
+  ```
+  (let [queue (pave/make-frame-queue)
+        input-stream (turboshrimp/video-input-stream my-drone)
+        decoder (xuggler/decoder)
+        ;; Create an async channel with a sliding buffer of size 1; If
+        ;; our image rendering is slow this will drop frames, which is
+        ;; good.
+        image-channel (async/chan (async/sliding-buffer 1))]
+    (doto (Thread.
+           (fn []
+             (loop [frame (pave/read-frame input-stream)]
+               (when frame
+                 (pave/queue-frame queue frame))
+               (recur (pave/read-frame input-stream)))))
+      (.start))
+    (doto (Thread.
+           (fn []
+             (loop [frame (pave/pull-frame queue 1000)]
+               (when frame
+                 (let [^BufferedImage image (decoder frame)]
+                   (a/go
+                     (a/>! image-channel image))))
+               (recur (pave/pull-frame queue 1000)))))
+      (.start)))
+  ```"
   (:require [clojure.tools.logging :as log])
   (:import (java.io EOFException InputStream)
            (java.util.concurrent TimeUnit)
@@ -56,7 +96,7 @@
             ba))))))
 
 
-(def ^{"[B" true, :no-doc true} pave-signature (.getBytes "PaVE"))
+(def ^{:tag "[B" :no-doc true} pave-signature (.getBytes "PaVE"))
 
 
 (defn- pave-frame?
@@ -68,8 +108,8 @@
        (= (aget ba 3) (aget pave-signature 3))))
 
 
-(defn ^:no-doc read-frame
-  "Reads a PaVE frame from an InputStream.
+(defn read-frame
+  "Reads a PaVE frame from an `InputStream`.
 
   Skips over non-PaVE frames and returns the next PaVE frame.  Returns
   nil if there are no more frames."

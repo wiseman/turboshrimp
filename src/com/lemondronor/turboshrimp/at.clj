@@ -227,7 +227,7 @@
 (def default-navdata-options
   "A vector containing commonly used navdata options.
 
-  Equal to `[:demo :vision-detect :magneto :gps]`.
+  Has the value `[:demo :vision-detect :magneto :gps]`.
   See [[navdata-options]] for more information."
   [:demo :vision-detect :magneto :gps])
 
@@ -370,7 +370,7 @@
 
 (def default-animation-duration
   "A map from flight animation symbol to default animation duration,
-  in milliseconds."
+  in milliseconds. See [[turboshrimp/animate]]."
   {:phi-m-30-deg 1000,
    :phi-30-deg 1000,
    :theta-m-30-deg 1000,
