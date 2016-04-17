@@ -2,7 +2,8 @@
   "Code for reading and parsing video data in Parrot Video
   Encapsulated (PaVE) format.
 
-  Typically you will do something like the following:
+  Typically you will do something like the following to process drone
+  video:
 
   * Create a frame queue ([[make-frame-queue]]), a video input
   stream ([[video-input-stream]]), and a video decoder (see e.g.
