@@ -122,7 +122,36 @@
 
 
 (defn make-drone
-  "Creates a drone object."
+  "Creates a drone object.
+
+  This function can optionally take the following keyword arguments:
+
+  `:hostname`
+  : The drone's hostname/IP address.
+
+  `:event-handler`
+  : A drone event handler function. An event handler should be a
+  function of two arguments: `event-type` and `event-data`. There are
+  currently two event types defined. `:navdata` events occurr whenever
+  the drone sends navdata telemetry (typically many times per second)
+  and the data sent with the event is the navdata object. `:error`
+  events occur when an exception is thrown on the background thread
+  that communicated with the drone. The data sent with the error event
+  is the exception that occurred.
+
+  `:name`
+  : A readable name for the drone.
+
+  `:at-port`
+  : The network port to use for the AT command channel.
+
+  `:navdata-port`
+  : The network port to use for navdata telemetry.
+
+  Examples:
+  ```
+  (def my-drone (make-drone :event-handler #(println %1 %2)))
+  ```"
   [& options]
   (let [{:keys [name hostname at-port navdata-port event-handler]} options
         hostname (or hostname default-hostname)

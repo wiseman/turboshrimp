@@ -16,7 +16,7 @@
                    :plugins [[lein-cloverage "1.0.2"]
                              [lein-codox "0.9.4"]]
                    :codox {:metadata {:doc/format :markdown}
-                           :project {:version "2.0.1"}
+                           :project {:version "2.0.3"}
                            :html {:namespace-list :flat}
                            :source-uri "https://github.com/wiseman/turboshrimp/blob/{version}/{filepath}#L{line}"}}
              :example {:dependencies

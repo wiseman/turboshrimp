@@ -1,6 +1,7 @@
 (ns com.lemondronor.turboshrimp.pave
   "Code for reading and parsing video data in Parrot Video
-  Encapsulated (PaVE) format.
+  Encapsulated (PaVE) format, which is the format of the drone's video
+  stream.
 
   Typically you will do something like the following to process drone
   video:
