@@ -1,5 +1,7 @@
 (defproject com.lemondronor/turboshrimp "1.0.1-SNAPSHOT"
-  :description "Clojure API for the Parrot AR.Drone 2.0."
+  :description "Clojure API for the Parrot AR.Drone 2.0.
+
+  By John Wiseman / jjwiseman@gmail.com / http://twitter.com/lemonodor"
   :url "https://github.com/wiseman/turboshrimp"
   :license {:name "MIT License"
             :url "http://opensource.org/licenses/MIT"}

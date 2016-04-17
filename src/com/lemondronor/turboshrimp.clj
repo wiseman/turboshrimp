@@ -1,5 +1,8 @@
 (ns com.lemondronor.turboshrimp
-  "Control and telemetry library for the AR.Drone 2.0."
+  "Control and telemetry library for the AR.Drone 2.0.
+
+  By John Wiseman / jjwiseman@gmail.com
+  / [lemonodor](http://twitter.com/lemonodor)"
   (:refer-clojure :exclude [ref])
   (:require [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp.at :as at]
