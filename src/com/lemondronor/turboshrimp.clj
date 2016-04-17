@@ -1,5 +1,5 @@
 (ns com.lemondronor.turboshrimp
-  "Control and telemetry library for the AR.Drone."
+  "Control and telemetry library for the AR.Drone 2.0."
   (:refer-clojure :exclude [ref])
   (:require [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp.at :as at]
@@ -12,18 +12,18 @@
 (set! *warn-on-reflection* true)
 
 
-;; The default drone hostname.
-(def default-hostname "192.168.1.1")
+(def default-hostname
+  "The default drone hostname."
+  "192.168.1.1")
 
-;; The default port to use for AT control commands.
-(def default-at-port 5556)
+(def default-at-port
+  "The default network port to use for sending AT control commands to
+  a drone."
+  5556)
 
-;; The default port for streaming video.
-(def default-video-port 5555)
-
-;; The default drone communication timeout, in milliseconds.
-(def socket-timeout (atom 60000))
-
+(def default-video-port
+  "The default network port for streaming video from a drone."
+  5555)
 
 ;; This record represents a drone.  The connected?, counter,
 ;; keep-streaming-navdata and navdata-handler fields are atoms.
@@ -45,6 +45,9 @@
      navdata
      thread-pool
      command-executor])
+
+(alter-meta! (var ->Drone) #(assoc % :private true))
+(alter-meta! (var map->Drone) #(assoc % :private true))
 
 
 (defmethod print-method Drone [d ^Writer w]
@@ -153,13 +156,15 @@
   drone)
 
 
-(defmacro def-all-at-commands []
+(defmacro ^:private def-all-at-commands []
   (let [args-sym (gensym)]
     `(do
        ~@(map (fn [cmd]
                 (let [fn-name (symbol (name (:name cmd)))]
                   `(do
-                     (defn ~fn-name [drone# & ~args-sym]
+                     (defn ~fn-name
+                       ~(:doc cmd)
+                       [drone# & ~args-sym]
                        (apply command drone# ~(:name cmd) ~args-sym))
                      (alter-meta!
                       (var ~fn-name)
@@ -206,26 +211,60 @@
       (dissoc k2)))
 
 
-(defmacro ^:private defpcmds [[a b]]
+(defmacro ^:private defpcmds [[a doc] [b doc]]
   (let [a-key (keyword a)
         b-key (keyword b)]
     `(do
-       (defn ~a [~'drone ~'speed]
+       (defn ~a
+         ~doc
+         [~'drone ~'speed]
          (swap! (:pcmd ~'drone) assoc-exclusive ~a-key ~b-key ~'speed)
          ~'drone)
-       (defn ~b [~'drone ~'speed]
+       (defn ~b
+         ~doc
+         [~'drone ~'speed]
          (swap! (:pcmd ~'drone) assoc-exclusive ~b-key ~a-key ~'speed)
          ~'drone))))
 
 
-(defpcmds [up down])
-(defpcmds [left right])
-(defpcmds [front back])
-(defpcmds [clockwise counter-clockwise])
+(defpcmds
+  [up
+   "Commands the drone to begin climbing. `speed` should
+   be a number in the range [0.0, 1.0]."]
+  [down
+   "Commands the drone to begin descending. `speed` should
+   be a number in the range [0.0, 1.0]."])
+
+(defpcmds
+  [left
+   "Commands the drone to begin moving (translating) to its left.
+   `speed` should be a number in the range [0.0, 1.0]."]
+  [right
+   "Commands the drone to begin moving (translating) to its right.
+   `speed` should be a number in the range [0.0, 1.0]."])
+
+(defpcmds
+  [front
+   "Commands the drone to begin moving (translating) forward.
+   `speed` should be a number in the range [0.0, 1.0]."]
+  [back
+   "Commands the drone to begin moving (translating) backward.
+   `speed` should be a number in the range [0.0, 1.0]."])
+
+(defpcmds
+  [clockwise
+   "Commands the drone to begin rotating clockwise.
+   `speed` should be a number in the range [0.0, 1.0]."]
+  [counter-clockwise
+    "Commands the drone to begin rotating counter-clockwise.
+   `speed` should be a number in the range [0.0, 1.0]."])
 
 
 (defn connect!
-  "Connects to a drone's command channel and telemtry channel."
+  "Connects to a drone's command channel and telemetry channel.
+
+  You must connect to a drone before you can send it any commands or
+  receive telemetry."
   [drone]
   (reset! (:socket drone) (network/make-datagram-socket (:port drone)))
   (navdata/start-navdata-stream @(:navdata-stream drone))

@@ -1,13 +1,17 @@
 (ns com.lemondronor.turboshrimp.pave
   "Code for reading and parsing video data in Parrot Video
-  Encapsulated (PaVE) format."
+  Encapsulated (PaVE) format.
+
+  To actually decode PaVE video, you will need something like
+  the [turboshrimp-xuggler](https://github.com/wiseman/turboshrimp-xuggler)
+  library."
   (:require [clojure.tools.logging :as log])
   (:import (java.io EOFException InputStream)
            (java.util.concurrent TimeUnit)
            (java.util.concurrent.locks Condition Lock ReentrantLock)))
 
 
-(defn bytes-to-int [^bytes ba offset num-bytes]
+(defn- bytes-to-int [^bytes ba offset num-bytes]
   (let [c 0x000000FF]
     (reduce
      #(+ %1 (bit-shift-left (bit-and (aget ba (+ offset %2)) c) (* 8 %2)))
@@ -15,22 +19,22 @@
      (range num-bytes))))
 
 
-(defn get-short [ba offset]
+(defn- get-short [ba offset]
   (bytes-to-int ba offset 2))
 
 
-(defn get-int [ba offset]
+(defn- get-int [ba offset]
   (bytes-to-int ba offset 4))
 
 
-(defn get-uint8 [ba offset]
+(defn- get-uint8 [ba offset]
   (bytes-to-int ba offset 1))
 
 
-(def header-size 76)
+(def ^:no-doc header-size 76)
 
 
-(defn full-read
+(defn- full-read
   "Reads a specified number of bytes from an InputStream.
 
   Compensates for short reads by reading in a loop until the desired
@@ -52,10 +56,10 @@
             ba))))))
 
 
-(def ^"[B" pave-signature (.getBytes "PaVE"))
+(def ^{"[B" true, :no-doc true} pave-signature (.getBytes "PaVE"))
 
 
-(defn pave-frame?
+(defn- pave-frame?
   "Checks whether a frame has the 'PaVE' signature."
   [^bytes ba]
   (and (= (aget ba 0) (aget pave-signature 0))
@@ -64,7 +68,7 @@
        (= (aget ba 3) (aget pave-signature 3))))
 
 
-(defn read-frame
+(defn ^:no-doc read-frame
   "Reads a PaVE frame from an InputStream.
 
   Skips over non-PaVE frames and returns the next PaVE frame.  Returns
@@ -98,12 +102,12 @@
     nil))
 
 
-(def IDR-FRAME 1)
-(def I-FRAME 2)
-(def P-FRAME 3)
+(def ^:no-doc IDR-FRAME 1)
+(def ^:no-doc I-FRAME 2)
+(def ^:no-doc P-FRAME 3)
 
 
-(defn i-frame?
+(defn ^:no-doc i-frame?
   "Checks whether a frame is an I-frame (keyframe)."
   [frame]
   (let [frame-type (:frame-type frame)]
@@ -115,15 +119,19 @@
 
 (defrecord FrameQueue [queue num-frames-dropped lock not-empty reduce-latency?])
 
+(alter-meta! (var ->FrameQueue) #(assoc % :private true))
+(alter-meta! (var map->FrameQueue) #(assoc % :private true))
+
 
 (defn make-frame-queue
-  "A frame queue that implements latency reduction.
+  "A frame queue that implements latency reduction by default.
 
   This queue implements the recommended latency reduction technique
   for AR.Drone video, which is to drop any unprocessed P-frames
   whenever an I-frame is received.
 
-  To turn off latency reduction"
+  To turn off latency reduction, you can call this with
+  `:reduce-latency? false`."
   [& {:keys [reduce-latency?]
       :or {reduce-latency? true}}]
   (let [^Lock lock (ReentrantLock.)]
@@ -135,16 +143,23 @@
       :reduce-latency? (atom reduce-latency?)})))
 
 
+(defn dropped-frame-count
+  "Returns the number of video frames that have been dropped in order
+  to reduce latency."
+  [queue]
+  @(:num-dropped-frames queue))
+
+
 (defn pull-frame
   "Pulls a video frame from a frame queue.
 
   Blocks until a frame is available.  An optional timeout (in
   milliseconds) can be specified, in which case the call will return
   nil if a frame isn't available in time."
-  [lrq & [timeout-ms]]
-  (let [q (:queue lrq)
-        ^Lock lock (:lock lrq)
-        ^Condition not-empty (:not-empty lrq)]
+  [queue & [timeout-ms]]
+  (let [q (:queue queue)
+        ^Lock lock (:lock queue)
+        ^Condition not-empty (:not-empty queue)]
     (.lock lock)
     (try
       (loop [num-tries 0]
@@ -165,19 +180,19 @@
 
 (defn queue-frame
   "Pushes a video frame into a frame queue."
-  [lrq frame]
-  (let [q (:queue lrq)
-        ^Lock lock (:lock lrq)
-        ^Condition not-empty (:not-empty lrq)]
+  [queue frame]
+  (let [q (:queue queue)
+        ^Lock lock (:lock queue)
+        ^Condition not-empty (:not-empty queue)]
     (.lock lock)
     (try
       (do
-        (if (and @(:reduce-latency? lrq)
+        (if (and @(:reduce-latency? queue)
                  (i-frame? frame))
           (let [num-skipped (count @q)]
             (when (> num-skipped 0)
               (log/debug "Skipped" num-skipped "frames")
-              (swap! (:num-dropped-frames lrq) + num-skipped))
+              (swap! (:num-dropped-frames queue) + num-skipped))
             (reset! q (list frame)))
           (swap! q concat (list frame)))
         (.signal not-empty))

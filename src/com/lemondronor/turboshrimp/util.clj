@@ -1,4 +1,4 @@
-(ns com.lemondronor.turboshrimp.util
+(ns ^:no-doc com.lemondronor.turboshrimp.util
   (:import (java.util.concurrent ScheduledFuture
                                  ScheduledThreadPoolExecutor
                                  ThreadFactory TimeUnit)))

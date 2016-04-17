@@ -57,9 +57,9 @@
    [{:code KeyEvent/VK_Z} ar-drone/down]
    [{:code KeyEvent/VK_T} ar-drone/takeoff :continuous? false]
    [{:code KeyEvent/VK_L} ar-drone/land :continuous? false]
-   [{:code KeyEvent/VK_C} #(ar-drone/command % :switch-camera :forward)
+   [{:code KeyEvent/VK_C} #(ar-drone/switch-camera % :forward)
     :continuous? false]
-   [{:code KeyEvent/VK_V} #(ar-drone/command % :switch-camera :down)
+   [{:code KeyEvent/VK_V} #(ar-drone/switch-camera % :down)
     :continuous? false]])
 
 
@@ -213,4 +213,4 @@
     (seesaw/listen ui :key (make-key-controller drone))
     (connect-video-controller ui drone)
     (ar-drone/connect! drone)
-    (ar-drone/command drone :navdata-options commands/default-navdata-options)))
+    (ar-drone/navdata-options drone commands/default-navdata-options)))

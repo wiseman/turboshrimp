@@ -1,5 +1,5 @@
 (defproject com.lemondronor/turboshrimp "1.0.1-SNAPSHOT"
-  :description "Clojure API for the Parrot AR.Drone."
+  :description "Clojure API for the Parrot AR.Drone 2.0."
   :url "https://github.com/wiseman/turboshrimp"
   :license {:name "MIT License"
             :url "http://opensource.org/licenses/MIT"}
@@ -11,7 +11,9 @@
   :java-source-paths ["src/java"]
   :profiles {:dev {:dependencies [[com.lemonodor/xio "0.2.2"]
                                   [org.clojars.echo/test.mock "0.1.2"]]
-                   :plugins [[lein-cloverage "1.0.2"]]}
+                   :plugins [[lein-cloverage "1.0.2"]
+                             [lein-codox "0.9.4"]]
+                   :codox {:metadata {:doc/format :markdown}}}
              :example {:dependencies
                        [[com.lemondronor/turboshrimp-xuggler "0.0.4"]
                         [com.lemonodor/gflags "0.7.3"]

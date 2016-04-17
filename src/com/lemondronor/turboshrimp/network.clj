@@ -1,4 +1,4 @@
-(ns com.lemondronor.turboshrimp.network
+(ns ^:no-doc com.lemondronor.turboshrimp.network
   (:import (java.io Closeable)
            (java.net DatagramPacket DatagramSocket InetAddress Socket)
            (java.util Arrays))

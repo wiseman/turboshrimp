@@ -1,4 +1,4 @@
-(ns com.lemondronor.turboshrimp.navdata
+(ns ^:no-doc com.lemondronor.turboshrimp.navdata
   (:require [clojure.tools.logging :as log]
             [com.lemondronor.turboshrimp.network :as network]
             [com.lemondronor.turboshrimp.util :as util]

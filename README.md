@@ -6,32 +6,11 @@
 Turboshrimp is a clojure library for communicating with and
 controlling the Parrot AR.Drone.
 
-This code was originally forked from the awesome work gigasquid/Carin
-Meier did with [clj-drone](https://github.com/gigasquid/clj-drone).
+It supports the following:
 
-My changes are mostly about turning the code into a full-featured
-library for writing drone applications (like
-[node-ar-drone](https://github.com/felixge/node-ar-drone)), with the
-following specific goals:
-
-  * Keeping the focus on straightforward drone control: I removed the
-    OpenCV dependency and the goal/belief-driven programming API.
-    Those are good things, but I think they should be in separate
-    libraries.
-
-  * Enhancing the ability to control multiple drones and receive
-    telemetry from multiple drones: Replacing single, global vars with
-    per-drone data structures.
-
-  * Adding a clean way for applications to process drone telemetry,
-    and parsing the full set of navdata options from the drone: GPS,
-    magneto, vision, etc.
-
-  * Android compatibility.  I want to be able to use this code on
-    Android using [Clojure on Android](http://clojure-android.info/).
-
-I'm basing some of the new work on the
-[node-ar-drone](https://github.com/felixge/node-ar-drone) project.
+* Flight control.
+* Telemetry (including video and GPS).
+* Runs on Android, using [clojure-android](http://clojure-android.info/).
 
 
 ## Current status
@@ -56,6 +35,44 @@ I'm basing some of the new work on the
     periodically test on Android.  This code has flown a drone on an
     Android phone.
 
+
+## Example code
+
+This simple example connects to a drone, tells it to take off, and
+prints the battery level:
+
+```
+(require '[com.lemondronor.turboshrimp :as ardrone])
+
+(def drone (ardrone/make-drone))
+
+;; Connect to the drone.
+(ardrone/connect! drone)
+
+;; Tell the drone to being sending us detailed telemetry.
+(ardrone/navdata-demo drone true)
+
+;; Tell the drone to take off.
+(ardrone/takeoff drone)
+
+;; Check the battery level.
+(println (get-in @(:navdata drone) '[:demo :battery-percentage]))
+```
+
+This example shows how to process telemetry updates from the drone as
+they arrive:
+
+```
+(require '[com.lemondronor.turboshrimp :as ardrone])
+
+(defn process-event [event-type data]
+  (when (= event-type :navdata)
+    (println "Position:" (get-in data [:demo :drone :camera :translation]))))
+
+(def drone (ardrone/make-drone :event-handler process-event))
+(ardrone/connect! drone)
+(ardrone/navdata-demo drone true)
+```
 
 ## Example app
 
@@ -95,11 +112,42 @@ app that uses turboshrimp to let you fly a drone with your phone.
 
 ![Shrimpdroid screenshot](/media/screenshots/shrimpdroid.png?raw=true)
 
+## API
+
+
+
 ## Testing
 
 ```
 $ lein test
 ```
+
+
+## Origin and motivation
+
+This code was originally forked from the awesome work gigasquid/Carin
+Meier did with [clj-drone](https://github.com/gigasquid/clj-drone).
+
+My changes are mostly about turning the code into a full-featured
+library for writing drone applications (similar to
+[node-ar-drone](https://github.com/felixge/node-ar-drone)), with the
+following specific goals:
+
+  * Keeping the focus on straightforward drone control: I removed the
+    OpenCV dependency and the goal/belief-driven programming API.
+    Those are good things, but I think they should be in separate
+    libraries.
+
+  * Enhancing the ability to control multiple drones and receive
+    telemetry from multiple drones: Replacing single, global vars with
+    per-drone data structures.
+
+  * Adding a clean way for applications to process drone telemetry,
+    and parsing the full set of navdata options from the drone: GPS,
+    magneto, vision, etc.
+
+  * Android compatibility.  I want to be able to use this code on
+    Android using [Clojure on Android](http://clojure-android.info/).
 
 
 ## To do

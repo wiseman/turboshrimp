@@ -9,7 +9,7 @@
     (is (= -1085485875 (at/at-encoded-float -0.8)))
     (is (= 0 (at/at-encoded-float 0))))
   (testing "ctrl"
-    (is (= (at/map->AtCommand
+    (is (= (#'at/map->AtCommand
             {:type "CTRL"
              :args [5 0]
              :blocks? false
@@ -19,7 +19,7 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Wrong number of arguments"
                           (at/build-command :ctrl))))
   (testing "ref"
-    (is (= (at/map->AtCommand
+    (is (= (#'at/map->AtCommand
             {:type "REF",
              :args [256],
              :blocks? false,
@@ -35,7 +35,7 @@
     (is (= "AT*REF=7,0\r"
            (at/serialize 7 (at/build-command :ref {:fly false})))))
   (testing "pcmd"
-    (is (= (at/map->AtCommand
+    (is (= (#'at/map->AtCommand
             {:type "PCMD",
              :args [1 0 0 1056964608 0],
              :blocks? false,
@@ -81,13 +81,13 @@
            (at/serialize
             7 (at/build-command :animate :yaw-shake 2000)))))
   (testing "config"
-    (is (= (at/map->AtCommand
+    (is (= (#'at/map->AtCommand
             {:type "CONFIG"
              :args ["\"foo\"" "\"bar\""]
              :blocks? true
              :callback nil})
            (at/build-command :config "foo" "bar")))
-    (is (= (at/map->AtCommand
+    (is (= (#'at/map->AtCommand
             {:type "CONFIG"
              :args ["\"foo\"" "\"bar\""]
              :blocks? true
