@@ -114,6 +114,8 @@ app that uses turboshrimp to let you fly a drone with your phone.
 
 ## API
 
+See
+[Turboshrimp API documentation](http://wiseman.github.io/turboshrimp/).
 
 
 ## Testing
