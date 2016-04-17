@@ -154,19 +154,6 @@ following specific goals:
 
 ## To do
 
-* Fix the inconsistent API.  That is, some commands are functions,
-  e.g. `(takeoff drone)` while some are sent using `command`:
-  `(command drone :navdata-options :demo)`.
-
-* Add some convenient handling of emergency mode, similar to what
-  node-ar-drone does.
-
-* Test with multiple drones and drones that aren't at the default
-  192.168.1.1 address.
-
-* Consider whether we can make it a little more convenient to use
-  video.
-
 * Handle blocking config commands and multiconfig (see
   https://github.com/felixge/node-ar-drone/pull/76).
 
@@ -180,6 +167,6 @@ following specific goals:
 
 ## License
 
-Copyright 2014, 2015 John Wiseman jjwiseman@gmail.com
+Copyright 2014, 2015, 2016 John Wiseman jjwiseman@gmail.com
 
 Distributed under the [MIT License](http://opensource.org/licenses/MIT).
