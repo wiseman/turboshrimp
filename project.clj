@@ -1,4 +1,4 @@
-(defproject com.lemondronor/turboshrimp "2.0.0"
+(defproject com.lemondronor/turboshrimp "2.0.1-SNAPSHOT"
   :description "Clojure API for the Parrot AR.Drone 2.0.
 
   By John Wiseman / jjwiseman@gmail.com / http://twitter.com/lemonodor"
