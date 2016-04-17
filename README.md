@@ -1,7 +1,7 @@
 # turboshrimp
 
 [![Build Status](https://travis-ci.org/wiseman/turboshrimp.png?branch=master)](https://travis-ci.org/wiseman/turboshrimp) [![Coverage Status](https://coveralls.io/repos/wiseman/turboshrimp/badge.png?branch=master)](https://coveralls.io/r/wiseman/turboshrimp?branch=master)
-[![](https://www.codeship.io/projects/bf2c2bd0-d1cb-0131-603c-5af570721319/status)](https://www.codeship.io/projects/bf2c2bd0-d1cb-0131-603c-5af570721319/status)
+[![](https://www.codeship.io/projects/bf2c2bd0-d1cb-0131-603c-5af570721319/status?branch=master)](https://www.codeship.io/projects/bf2c2bd0-d1cb-0131-603c-5af570721319/status?branch=master)
 
 Turboshrimp is a clojure library for communicating with and
 controlling the Parrot AR.Drone.
@@ -11,29 +11,6 @@ It supports the following:
 * Flight control.
 * Telemetry (including video and GPS).
 * Runs on Android, using [clojure-android](http://clojure-android.info/).
-
-
-## Current status
-
-  * Flight control works.
-
-  * Telemetry works--even GPS!
-
-  * Video works.  I've tried two different H.264 decoders:
-
-      * [turboshrimp-h264j](https://github.com/wiseman/turboshrimp-h264j)
-        uses the pure Java [h264j](https://code.google.com/p/h264j/)
-        decoder.  h264j is a little slow and has some color glitches
-        and occasional errors.
-
-      * [turboshrimp-xuggler](https://github.com/wiseman/turboshrimp-xuggler)
-        uses the [xuggler](http://www.xuggle.com/xuggler) decoder,
-        which uses native code.  It's almost twice as fast as h264j
-        and its output appears to be perfect.
-
-  * It runs on Android.  I don't check every commit, but I do
-    periodically test on Android.  This code has flown a drone on an
-    Android phone.
 
 
 ## Example code
@@ -123,6 +100,29 @@ See
 ```
 $ lein test
 ```
+
+
+## Current status
+
+  * Flight control works.
+
+  * Telemetry works--even GPS!
+
+  * Video works.  I've tried two different H.264 decoders:
+
+      * [turboshrimp-h264j](https://github.com/wiseman/turboshrimp-h264j)
+        uses the pure Java [h264j](https://code.google.com/p/h264j/)
+        decoder.  h264j is a little slow and has some color glitches
+        and occasional errors.
+
+      * [turboshrimp-xuggler](https://github.com/wiseman/turboshrimp-xuggler)
+        uses the [xuggler](http://www.xuggle.com/xuggler) decoder,
+        which uses native code.  It's almost twice as fast as h264j
+        and its output appears to be perfect.
+
+  * It runs on Android.  I don't check every commit, but I do
+    periodically test on Android.  This code has flown a drone on an
+    Android phone.
 
 
 ## Origin and motivation
