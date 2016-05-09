@@ -4,13 +4,15 @@
   By John Wiseman / jjwiseman@gmail.com
   / [lemonodor](http://twitter.com/lemonodor)"
   (:refer-clojure :exclude [ref])
-  (:require [clojure.tools.logging :as log]
-            [com.lemondronor.turboshrimp.at :as at]
-            [com.lemondronor.turboshrimp.navdata :as navdata]
-            [com.lemondronor.turboshrimp.network :as network]
-            [com.lemondronor.turboshrimp.util :as util])
-  (:import (java.io Writer)
-           (java.net Socket))
+  (:require
+   [clojure.tools.logging :as log]
+   [com.lemondronor.turboshrimp.at :as at]
+   [com.lemondronor.turboshrimp.navdata :as navdata]
+   [com.lemondronor.turboshrimp.network :as network]
+   [com.lemondronor.turboshrimp.util :as util])
+  (:import
+   [java.io Writer]
+   [java.net Socket])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -33,22 +35,22 @@
 ;; keep-streaming-navdata and navdata-handler fields are atoms.
 
 (defrecord ^:private Drone
-    [name
-     hostname
-     socket
-     port
-     addr
-     command-queue
-     ref
-     pcmd
-     disable-emergency?
-     seq-num
-     connected?
-     event-handler
-     navdata-stream
-     navdata
-     thread-pool
-     command-executor])
+  [name
+   hostname
+   socket
+   port
+   addr
+   command-queue
+   ref
+   pcmd
+   disable-emergency?
+   seq-num
+   connected?
+   event-handler
+   navdata-stream
+   navdata
+   thread-pool
+   command-executor])
 
 (alter-meta! (var ->Drone) #(assoc % :private true))
 (alter-meta! (var map->Drone) #(assoc % :private true))
@@ -66,25 +68,43 @@
 (defn- raise-event [drone event-type & args]
   (log/debug "Event" event-type args)
   (when-let [handler (:event-handler drone)]
-    (apply handler event-type args)))
+    (try
+      (apply handler event-type args)
+      (catch Throwable e
+        (log/error e (str "Error when calling event handler function " handler))))))
+
+
+(defn- maybe-raise-state-change-events
+  [drone prev-navdata cur-navdata]
+  (let [changes (reduce-kv (fn [m k v]
+                             (if (or (not (contains? prev-navdata k))
+                                     (not (= (prev-navdata k) v)))
+                               (assoc m k v)
+                               m))
+                           {}
+                           cur-navdata)]
+    (when (not (empty? changes))
+      (raise-event drone :state-change changes))))
 
 
 (defn- navdata-handler [drone]
   (fn [navdata]
     ;; Update the drone's current navdata.
-    (reset! (:navdata drone) navdata)
-    ;; Receipt of navdata tells us we're connected to the drone.
-    (reset! (:connected? drone) true)
-    ;; If a user has requested a reset of the emergency state, do that
-    ;; now.
-    (let [disable-emergency? (:disable-emergency? drone)
-          state (:state navdata)]
-      (if (and state (= (:emergency state) :detected) @disable-emergency?)
-        (swap! (:ref drone) assoc :emergency true)
-        (do
-          (swap! (:ref drone) assoc :emergency false)
-          (reset! disable-emergency? false))))
-    (raise-event drone :navdata navdata)))
+    (let [prev-navdata @(:navdata drone)]
+      (reset! (:navdata drone) navdata)
+      ;; Receipt of navdata tells us we're connected to the drone.
+      (reset! (:connected? drone) true)
+      ;; If a user has requested a reset of the emergency state, do that
+      ;; now.
+      (let [disable-emergency? (:disable-emergency? drone)
+            state (:state navdata)]
+        (if (and state (= (:emergency state) :detected) @disable-emergency?)
+          (swap! (:ref drone) assoc :emergency true)
+          (do
+            (swap! (:ref drone) assoc :emergency false)
+            (reset! disable-emergency? false))))
+      (raise-event drone :navdata navdata)
+      (maybe-raise-state-change-events drone prev-navdata navdata))))
 
 
 (defn- navdata-error-handler [drone]
@@ -130,14 +150,7 @@
   : The drone's hostname/IP address.
 
   `:event-handler`
-  : A drone event handler function. An event handler should be a
-  function of two arguments: `event-type` and `event-data`. There are
-  currently two event types defined. `:navdata` events occurr whenever
-  the drone sends navdata telemetry (typically many times per second)
-  and the data sent with the event is the navdata object. `:error`
-  events occur when an exception is thrown on the background thread
-  that communicated with the drone. The data sent with the error event
-  is the exception that occurred.
+  : A drone event handler function. See below for more information.
 
   `:name`
   : A readable name for the drone.
@@ -147,6 +160,26 @@
 
   `:navdata-port`
   : The network port to use for navdata telemetry.
+
+  An event handler function must be a function of two arguments:
+  `event-type` and `event-data`. There are currently three event types
+  defined:
+
+  * `:navdata` events occur whenever the drone sends navdata
+  telemetry (typically many times per second) and the data sent with
+  the event is the navdata object.
+
+  * `:state-change` events occur when the drone's state changes,
+  according to the `:state` map of the `:demo` member of navdata. The
+  data sent with the event is a map containing just the keys and
+  values of the changed state, e.g.
+  `{:cutout :detected, :flying :landed, :emergency :detected}`. For
+  more information see the value of
+  `com.lemondronor.turboshrimp.navdata/state-masks`.
+
+  * `:error` events occur when an exception is thrown on the
+  background thread that communicates with the drone. The data sent
+  with the error event is the exception that occurred.
 
   Examples:
   ```
@@ -225,7 +258,7 @@
 
 (defn stop
   "Commands the drone to stop all motion."
-    [drone]
+  [drone]
   (reset! (:pcmd drone) {})
   drone)
 
@@ -289,7 +322,7 @@
    "Commands the drone to begin rotating clockwise.
    `speed` should be a number in the range [0.0, 1.0]."]
   [counter-clockwise
-    "Commands the drone to begin rotating counter-clockwise.
+   "Commands the drone to begin rotating counter-clockwise.
    `speed` should be a number in the range [0.0, 1.0]."])
 
 
