@@ -145,7 +145,6 @@
                            (at-encoded-float value))))
                      [prog-value 0 0 0 0]
                      options)]
-    (println "pcmd" args)
     (raw "PCMD" args false nil nil)))
 
 
